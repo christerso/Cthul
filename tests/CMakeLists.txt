@@ -6,6 +6,9 @@ add_executable(${BINARY} "../tests/ResourceManagerTest.h" "../tests/ResourceMana
 add_test(NAME ${BINARY} COMMAND ${BINARY})
 target_include_directories(${BINARY} PRIVATE ${RAPIDXML_INCLUDE_DIRS} rapidjson)
 target_link_libraries(${BINARY} PUBLIC ${GTEST_LIBRARIES}
+                      freeimage::FreeImage
+                      freeimage::FreeImagePlus
+                      SDL2::SDL2 SDL2::SDL2main
                       Poco::Zip
                       ${LIBNOISE_LIBRARIES}
                       ${Boost_LIBRARIES}
@@ -14,8 +17,6 @@ target_link_libraries(${BINARY} PUBLIC ${GTEST_LIBRARIES}
                       flatbuffers::flatbuffers
                       fmt::fmt
                       fmt::fmt-header-only
-                      SDL2::SDL2_image
-                      SDL2::SDL2 SDL2::SDL2main
                       Boost::boost
                       glog::glog
                       GTest::gmock GTest::gtest GTest::gmock_main GTest::gtest_main

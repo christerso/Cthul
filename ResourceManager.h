@@ -1,12 +1,13 @@
 #ifndef RESOURCE_WRAPPER_H
 #define RESOURCE_WRAPPER_H
 
+#include <FreeImage.h>
+#include <SDL2/SDL_surface.h>
+
 #include <functional>
 #include <memory>
 #include <unordered_map>
 #include <string>
-
-#include <SDL2/SDL_surface.h>
 
 
 namespace RM
@@ -26,6 +27,9 @@ public:
     virtual bool load(std::string name, std::string filename);
 
 private:
+    // using Freeimage
+    FIBITMAP* get_freeimage_bitmap(std::string filename);
+    SDL_Surface* get_sdl_surface(FIBITMAP* freeimage_bitmap, int is_grayscale);
     virtual bool load_image(std::string name, std::string filename);
     virtual bool load_level(std::string name);
 

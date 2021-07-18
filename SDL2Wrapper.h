@@ -2,7 +2,7 @@
 #define SDL2_WRAPPER_H
 
 #include <SDL2/SDL.h>
-#include <SDL_image.h>
+#include "SDL2/SDL_image.h"
 
 #include <glog/logging.h>
 #include <memory>

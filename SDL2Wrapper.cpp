@@ -1,6 +1,5 @@
 #include "SDL2Wrapper.h"
 
-
 #include <fmt/format.h>
 
 using namespace SW;
@@ -15,18 +14,12 @@ void SDL2Wrapper::initialize_SDL2()
         LOG(ERROR) << "Could not initialize SDL: {}", SDL_GetError();
         exit(-1);
     }
-    auto res = IMG_Init(IMG_INIT_PNG );
-    if (res != IMG_INIT_PNG) {
-        LOG(ERROR) << "Was unable to allocate all image formats:";
-        exit(-1);
-    }
 }
 
 void SDL2Wrapper::shutdown_SDL2()
 {
     /* Shutdown all subsystems */
     g_window = nullptr;
-    IMG_Quit();
     SDL_Quit();
 
     LOG(INFO) << "SDL2 is exiting..." << std::endl;
