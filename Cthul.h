@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
 
     FLAGS_alsologtostderr = true;
     FLAGS_logbuflevel = google::GLOG_INFO;
-    FLAGS_log_dir = "out";
+    FLAGS_log_dir = "logging";
     FLAGS_max_log_size = 1000000;
     google::InitGoogleLogging(argv[0]);
 

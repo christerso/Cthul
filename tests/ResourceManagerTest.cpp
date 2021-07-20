@@ -2,16 +2,16 @@
 #include "../ResourceManager.cpp"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-
+#include <SDL2/SDL_surface.h>
 #include <string>
 
 
 class ResourceManagerMock : public RM::ResourceManager
 {
 public:
-    MOCK_METHOD2(load, bool(std::string name, std::string filename));
-    MOCK_METHOD2(load_image, bool(std::string name, std::string filename));
-    MOCK_METHOD2(load_level, bool(std::string name, std::string filename));
+    MOCK_METHOD2(load, SDL_Surface*(std::string name, std::string filename));
+    MOCK_METHOD2(load_image, SDL_Surface*(std::string name, std::string filename));
+    MOCK_METHOD2(load_level, SDL_Surface*(std::string name, std::string filename));
 };
 
 TEST(ResourceManagerMockTest, load)

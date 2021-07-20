@@ -1,5 +1,5 @@
 #include "SDL2Wrapper.h"
-
+#include "ResourceManager.h"
 #include <fmt/format.h>
 
 using namespace SW;
@@ -39,6 +39,20 @@ void SDL2Wrapper::create_window()
         // Get window surface
         g_screen_surface = SDL_GetWindowSurface(g_window);
     }
+
+        // TMP TEST CODE:
+    RM::ResourceManager r;
+    auto surface = r.load("Tst", "test-images/cthulhu.png");
+    SDL_Renderer * renderer = SDL_CreateRenderer(g_window, -1, 0);
+    SDL_Texture * texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
+/*
+    SDL_DestroyTexture(texture);
+    SDL_FreeSurface(surface);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(g_window);
+*/
 }
 
 void SDL2Wrapper::start_input_loop()
@@ -63,6 +77,7 @@ void SDL2Wrapper::start_input_loop()
             }
             else if (e.type == SDL_TEXTINPUT)
             {
+
                 LOG(INFO) << e.text.text << std::endl;
             }
             else if (e.type = SDL_MOUSEMOTION)
@@ -76,4 +91,3 @@ void SDL2Wrapper::start_input_loop()
 
     SDL_UpdateWindowSurface(g_window);
 }
-

@@ -17,13 +17,13 @@ using namespace RM;
 
 ResourceManager::ResourceManager()
 {
-    m_resource_loader["png"] = [&](std::string name, std::string filename) -> bool {
+    m_resource_loader["png"] = [&](std::string name, std::string filename) -> SDL_Surface* {
         return load_image(name, filename);
     };
-    m_resource_loader["jpg"] = [&](std::string name, std::string filename) -> bool {
+    m_resource_loader["jpg"] = [&](std::string name, std::string filename) -> SDL_Surface* {
         return load_image(name, filename);
     };
-    m_resource_loader["bmp"] = [&](std::string name, std::string filename) -> bool {
+    m_resource_loader["bmp"] = [&](std::string name, std::string filename) -> SDL_Surface* {
         return load_image(name, filename);
     };
 }
@@ -69,35 +69,7 @@ SDL_Surface* ResourceManager::get_sdl_surface(FIBITMAP* freeimage_bitmap, int is
     return sdl_surface;
 }
 
-bool ResourceManager::load(std::string name, std::string filename)
-{
-    // make all input lowercase
-    boost::to_lower(filename);
-
-    // deduce file type from extension
-    auto found = filename.find('.');
-    std::string substring;
-    if (found != std::string::npos && found > 1)
-    {
-        ++found;
-        substring = filename.substr(found, filename.size());
-    }
-    else
-    {
-        LOG(ERROR) << "invalid extension.";
-        return false;
-    }
-
-    if (m_resource_loader[substring](name, filename) != true)
-    {
-        LOG(ERROR) << fmt::format("unable to load resource: {} {}", name, filename);
-        return false;
-    }
-
-    return true;
-}
-
-bool ResourceManager::load_image(std::string name, std::string filename)
+SDL_Surface* ResourceManager::load_image(std::string name, std::string filename)
 {
     boost::filesystem::path full_path(boost::filesystem::current_path());
     std::cout << "Current path is : " << full_path << std::endl;
@@ -118,7 +90,17 @@ bool ResourceManager::load_image(std::string name, std::string filename)
    m_image_store[name] = std::make_shared<SDL_Surface>(*sdl_surface);
     LOG(INFO) << fmt::format("loaded image: {} from {}", name, filename);
 
-    return true;
+    return sdl_surface;
+}
+
+const SDL_Surface* ResourceManager::get_image_from_store(std::string image)
+{
+    if (m_image_store.find(image) == m_image_store.end())
+    {
+        LOG(ERROR) << fmt::format("image not found in image store {}", image);
+        return nullptr;
+    }
+    return m_image_store[image].get();
 }
 
 // read json data for images to load: TODO to be continued...
