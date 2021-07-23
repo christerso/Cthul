@@ -1,0 +1,24 @@
+namespace Entity.Character;
+
+attribute "Human";
+
+enum Movement:byte { Walking = 1, Flying = 2, InWater = 3 }
+
+struct Vec3 {
+    x:float;
+    y:float;
+    z:float;
+}
+
+table Human {
+    name:string;
+    position:Vec3;
+    movementType:Movement = Walking;
+    likesItems:[ItemName];
+}
+
+table ItemName {
+    name:string;
+}
+
+root_type Human;

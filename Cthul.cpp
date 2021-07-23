@@ -9,3 +9,7 @@
 using namespace RM;
 
 
+void Cthul::setup()
+{
+	rm.load_image("Adam", "resources/images/human.png");
+}

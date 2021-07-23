@@ -28,7 +28,7 @@ void SDL2Wrapper::shutdown_SDL2()
 void SDL2Wrapper::create_window()
 {
     // Create window
-    g_window = SDL_CreateWindow("Chthul", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 768, SDL_WINDOW_OPENGL);
+    g_window = SDL_CreateWindow("Cthul", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 768, SDL_WINDOW_OPENGL);
     if (g_window == nullptr)
     {
         LOG(ERROR) << fmt::format("Window could not be created !SDL_Error: {}\n", SDL_GetError());
@@ -40,19 +40,6 @@ void SDL2Wrapper::create_window()
         g_screen_surface = SDL_GetWindowSurface(g_window);
     }
 
-        // TMP TEST CODE:
-    RM::ResourceManager r;
-    auto surface = r.load("Tst", "test-images/cthulhu.png");
-    SDL_Renderer * renderer = SDL_CreateRenderer(g_window, -1, 0);
-    SDL_Texture * texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
-/*
-    SDL_DestroyTexture(texture);
-    SDL_FreeSurface(surface);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(g_window);
-*/
 }
 
 void SDL2Wrapper::start_input_loop()

@@ -2,9 +2,16 @@ cmake_minimum_required (VERSION 3.8)
 
 set(BINARY Cthultest)
 
-add_executable(${BINARY} "../tests/ResourceManagerTest.h" "../tests/ResourceManagerTest.cpp")
+add_executable(${BINARY} "resourcemanager_test.h" "resourcemanager_test.cpp")
+
+include_directories(
+  ${GLOG_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIR}
+  ${RAPIDJSON_INCLUDE_DIRS}
+  ${LIBNOISE_INCLUDE_DIR}
+  ${GTEST_INCLUDE_DIRS})
+
 add_test(NAME ${BINARY} COMMAND ${BINARY})
-target_include_directories(${BINARY} PRIVATE ${RAPIDXML_INCLUDE_DIRS} rapidjson)
 target_link_libraries(${BINARY} PUBLIC ${GTEST_LIBRARIES}
                       freeimage::FreeImage
                       freeimage::FreeImagePlus

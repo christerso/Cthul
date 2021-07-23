@@ -28,7 +28,8 @@ public:
     // This load function should be generic.
     // Anything given should be handled.
     virtual SDL_Surface* load_image(std::string name, std::string filename);
-    const SDL_Surface* get_image_from_store(std::string image);
+    virtual const SDL_Surface* get_image_from_store(std::string image);
+    virtual bool load_entity(std::string name, std::string filename);
 
 private:
     // using Freeimage
