@@ -1,11 +1,10 @@
-#ifndef RESOURCE_WRAPPER_H
-#define RESOURCE_WRAPPER_H
+#ifndef RESOURCE_MANAGER_H
+#define RESOURCE_MANAGER_H
 
+#include <SDL2/SDL.h>
+#undef main
 #include <FreeImage.h>
-#include <SDL2/SDL_surface.h>
-
 #include <functional>
-#include <memory>
 #include <string>
 #include <unordered_map>
 /*
@@ -15,20 +14,24 @@
 */
 namespace RM
 {
-using ImageStore = std::unordered_map<std::string, std::shared_ptr<SDL_Surface>>;
+using ImageStore = std::unordered_map<std::string, SDL_Texture*>;
 
-using ResourceLoader = std::unordered_map<std::string, std::function<SDL_Surface*(std::string, std::string)>>;
+using ResourceLoader = std::unordered_map<std::string, std::function<SDL_Texture*(std::string, std::string)>>;
 
 class ResourceManager
 {
 public:
-    ResourceManager();
-    virtual ~ResourceManager();
+    ResourceManager(SDL_Renderer* renderer);
+     ~ResourceManager();
+
+    // setup initial resources
+    // this means load level, load everything belonging to the level etc
+    void setup();
 
     // This load function should be generic.
     // Anything given should be handled.
-    virtual SDL_Surface* load_image(std::string name, std::string filename);
-    virtual const SDL_Surface* get_image_from_store(std::string image);
+    virtual SDL_Texture* load_image(std::string name, std::string filename);
+    virtual SDL_Texture* get_image_from_store(std::string image);
     virtual bool load_entity(std::string name, std::string filename);
 
 private:
@@ -41,8 +44,9 @@ private:
 private:
     ResourceLoader m_resource_loader;
     ImageStore m_image_store;
+    SDL_Renderer* m_renderer;
 };
 } // namespace RM
 
 
-#endif // RESOURCE_WRAPPER_H
+#endif // RESOURCE_MANAGER_H

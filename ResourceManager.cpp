@@ -1,10 +1,5 @@
 #include "ResourceManager.h"
 
-#include "SDL2Wrapper.h"
-
-#include <iostream>
-#include <memory>
-
 #include <FreeImage.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
@@ -15,13 +10,17 @@
 #include <glog/logging.h>
 
 #include <fstream>
-#include <iostream>
 
 using namespace RM;
 
-ResourceManager::ResourceManager() {}
+ResourceManager::ResourceManager(SDL_Renderer* renderer): m_renderer(renderer) {}
 
 ResourceManager::~ResourceManager() {}
+
+void ResourceManager::setup()
+{
+    load_image("Adam", "resources/images/human.png");
+}
 
 // initialise a FreeImage bitmap and return a pointer to it.
 FIBITMAP* ResourceManager::get_freeimage_bitmap(std::string filename)
@@ -62,7 +61,7 @@ SDL_Surface* ResourceManager::get_sdl_surface(FIBITMAP* freeimage_bitmap, int is
     return sdl_surface;
 }
 
-SDL_Surface* ResourceManager::load_image(std::string name, std::string filename)
+SDL_Texture* ResourceManager::load_image(std::string name, std::string filename)
 {
     auto bitmap = get_freeimage_bitmap(filename);
     if (bitmap == nullptr)
@@ -71,27 +70,34 @@ SDL_Surface* ResourceManager::load_image(std::string name, std::string filename)
         return nullptr;
     }
 
-    SDL_Surface* sdl_surface = get_sdl_surface(bitmap, true);
+    auto sdl_surface = get_sdl_surface(bitmap, true);
     if (sdl_surface == nullptr)
     {
         LOG(ERROR) << "unable to load sdl surface";
         return nullptr;
     }
 
-    m_image_store[name] = std::make_shared<SDL_Surface>(*sdl_surface);
+    // create texture from surface pixels
+    auto texture = SDL_CreateTextureFromSurface(m_renderer, sdl_surface);
+    if (texture == nullptr)
+    {
+        LOG(ERROR) << fmt::format("unable to create texture from {}! SDL Error: {}", filename.c_str(), SDL_GetError());
+    }
+    SDL_FreeSurface(sdl_surface);
+    m_image_store[name] = texture;
     LOG(INFO) << fmt::format("loaded image: {} from {}", name, filename);
 
-    return sdl_surface;
+    return texture;
 }
 
-const SDL_Surface* ResourceManager::get_image_from_store(std::string image)
+SDL_Texture* ResourceManager::get_image_from_store(std::string image)
 {
     if (m_image_store.find(image) == m_image_store.end())
     {
         LOG(ERROR) << fmt::format("image not found in image store {}", image);
         return nullptr;
     }
-    return m_image_store[image].get();
+    return m_image_store[image];
 }
 
 // read json data for images to load: TODO to be continued...

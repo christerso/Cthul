@@ -13,8 +13,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_WIN32_WINNT=0x0A00 -D_WINVER=0x0A00 -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DPOCO_NO_AUTOMATIC_LIBS=1 -D_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING=1")
 
 #-DGLOG_NO_ABBREVIATED_SEVERITIES=1
-add_custom_target(copy-resources-files ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/resources ${CMAKE_BINARY_DIR}/resources)
+add_custom_target(copy-resources ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/resources" "${CMAKE_BINARY_DIR}/resources")
 
 if (MSVC)
     set(VCPKG_INSTALLS ${Z_VCPKG_ROOT_DIR}/installed/x64-windows)
@@ -26,7 +26,7 @@ endif()
 
 make_directory (${CMAKE_BINARY_DIR}/logging)
 
-add_executable (Ctuhl "cthul.cpp" "cthul.h" "sdl2wrapper.cpp" "sdl2wrapper.h" "resourcemanager.h" "resourcemanager.cpp" "resources/entities/entities.h")
+add_executable (Ctuhl "Cthul.cpp" "Cthul.h" "ResourceManager.h" "ResourceManager.cpp" "resources/entities/entities.h")
 
 set(CMAKE_MAKE_PROGRAM ninja)
 

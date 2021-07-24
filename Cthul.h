@@ -6,33 +6,29 @@
 
 #include <iostream>
 
-#include <fmt/format.h>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include "ResourceManager.h"
-#include "SDL2Wrapper.h"
 #include "resources/entities/entities.h"
-
-// SDL2 adds a main definition to the environment, un-defining it here
-#undef main
 
 class Cthul
 {
 public:
-    Cthul() = default;
-    ~Cthul() = default;
+    void initialize_SDL2();
+    void shutdown_SDL2();
+    void create_window();
+    void start_input_loop();
 
-    void setup();
-
-private:
-    RM::ResourceManager rm;
+    SDL_Renderer* m_renderer = nullptr;
+    SDL_Window* m_window = nullptr;
+    SDL_Surface* m_screen_surface = nullptr;
 };
 
-
+#undef main
 int main(int argc, char* argv[])
 {
-    std::cout << "Starting Chthul" << std::endl;
+    std::cout << "Starting Cthul" << std::endl;
 
     FLAGS_alsologtostderr = true;
     FLAGS_logbuflevel = google::GLOG_INFO;
@@ -47,13 +43,14 @@ int main(int argc, char* argv[])
 
     Cthul cthul;
 
-    SW::SDL2Wrapper::initialize_SDL2();
-    SW::SDL2Wrapper::create_window();
+    cthul.initialize_SDL2();
+    cthul.create_window();
 
-    cthul.setup();
+    RM::ResourceManager m_resources(cthul.m_renderer);
+    m_resources.setup();
 
-    SW::SDL2Wrapper::start_input_loop();
-    SW::SDL2Wrapper::shutdown_SDL2();
+    cthul.start_input_loop();
+    cthul.shutdown_SDL2();
 
     google::ShutdownGoogleLogging();
 

@@ -2,23 +2,23 @@
 #include "../ResourceManager.cpp"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <SDL2/SDL_surface.h>
+#include <SDL2/SDL.h>
 #include <string>
 
 
 class ResourceManagerMock : public RM::ResourceManager
 {
 public:
-    MOCK_METHOD2(load, SDL_Surface*(std::string name, std::string filename));
-    MOCK_METHOD2(load_image, SDL_Surface*(std::string name, std::string filename));
-    MOCK_METHOD2(load_level, SDL_Surface*(std::string name, std::string filename));
+
+    ResourceManagerMock(): ResourceManager::ResourceManager(nullptr) {};
+    MOCK_METHOD2(load_image, SDL_Texture*(std::string name, std::string filename));
 };
 
 TEST(ResourceManagerMockTest, load)
 {
-   ResourceManagerMock resource_mock;
+   ResourceManagerMock mock;
    //EXPECT_FALSE(resource_mock.load("test", "anything"));
-   EXPECT_TRUE(resource_mock.load("Globe", "globe.png"));
+   EXPECT_TRUE(mock.load_image("Cthuhlu", "resources/images/cthulhu.png") != nullptr);
 }
 
 TEST(ResourceManagerMocktest, load_image)
