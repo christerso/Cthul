@@ -10,7 +10,7 @@ class ResourceManagerMock : public RM::ResourceManager
 {
 public:
 
-    ResourceManagerMock(): ResourceManager::ResourceManager(nullptr) {};
+    ResourceManagerMock(): ResourceManager::ResourceManager() {}
     MOCK_METHOD2(load_image, SDL_Texture*(std::string name, std::string filename));
 };
 

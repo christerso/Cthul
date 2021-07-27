@@ -21,17 +21,18 @@ using ResourceLoader = std::unordered_map<std::string, std::function<SDL_Texture
 class ResourceManager
 {
 public:
-    ResourceManager(SDL_Renderer* renderer);
+    ResourceManager();
      ~ResourceManager();
 
     // setup initial resources
     // this means load level, load everything belonging to the level etc
-    void setup();
-
+    void setup_initial_resources();
+    void set_renderer(SDL_Renderer* renderer);
     // This load function should be generic.
     // Anything given should be handled.
     virtual SDL_Texture* load_image(std::string name, std::string filename);
-    virtual SDL_Texture* get_image_from_store(std::string image);
+    SDL_Texture* grab_random_wallpaper_image();
+    virtual SDL_Texture* get_image(std::string image);
     virtual bool load_entity(std::string name, std::string filename);
 
 private:

@@ -7,6 +7,14 @@
 
 using namespace RM;
 
+Cthul::Cthul() {}
+
+Cthul::~Cthul()
+{
+    SDL_DestroyRenderer(m_renderer);
+    SDL_DestroyWindow(m_window);
+}
+
 void Cthul::initialize_SDL2()
 {
     if ((SDL_Init(SDL_INIT_EVERYTHING) == -1))
@@ -31,7 +39,7 @@ void Cthul::create_window()
     m_window = SDL_CreateWindow("Cthul", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 768, SDL_WINDOW_OPENGL);
     if (m_window == nullptr)
     {
-        LOG(ERROR) << fmt::format("Window could not be created !SDL_Error: {}\n", SDL_GetError());
+        LOG(ERROR) << fmt::format("Window could not be created !SDL_Error: {}", SDL_GetError());
         shutdown_SDL2();
     }
     else
@@ -44,9 +52,14 @@ void Cthul::create_window()
     {
         LOG(ERROR) << fmt::format("renderer could not be created! SDL Error: {}", SDL_GetError());
     }
-
+    m_resources.set_renderer(m_renderer);
     // initialize renderer color
     SDL_SetRenderDrawColor(m_renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+}
+
+void Cthul::setup_resources()
+{
+    m_resources.setup_initial_resources();
 }
 
 void Cthul::start_input_loop()
@@ -59,10 +72,12 @@ void Cthul::start_input_loop()
 
     int delta_x = 0;
     int delta_y = 0;
-
+    SDL_Rect a{0,0,100,100};
+    auto tex = m_resources.get_image("Adam");
     // Handle events on queue
     while (running)
     {
+        Uint32 ticks = SDL_GetTicks();
         while (SDL_PollEvent(&e) != 0)
         {
             if (e.type == SDL_QUIT)
@@ -76,12 +91,15 @@ void Cthul::start_input_loop()
             }
             else if (e.type = SDL_MOUSEMOTION)
             {
-                DLOG(INFO) << "X:" << e.motion.x << " Y:" << e.motion.y;
                 delta_x += e.motion.x;
                 delta_y += e.motion.y;
             }
         }
-    }
+        // clear screen
+        SDL_RenderClear(m_renderer);
 
-    SDL_UpdateWindowSurface(m_window);
+        // Render texture to screen
+        SDL_RenderCopy(m_renderer, tex, NULL, &a);
+        SDL_RenderPresent(m_renderer);
+    }
 }

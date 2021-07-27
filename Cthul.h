@@ -15,14 +15,21 @@
 class Cthul
 {
 public:
+    Cthul();
+
+    ~Cthul();
+
     void initialize_SDL2();
     void shutdown_SDL2();
     void create_window();
     void start_input_loop();
+    void setup_resources();
 
     SDL_Renderer* m_renderer = nullptr;
     SDL_Window* m_window = nullptr;
     SDL_Surface* m_screen_surface = nullptr;
+private:
+    RM::ResourceManager m_resources;
 };
 
 #undef main
@@ -46,8 +53,7 @@ int main(int argc, char* argv[])
     cthul.initialize_SDL2();
     cthul.create_window();
 
-    RM::ResourceManager m_resources(cthul.m_renderer);
-    m_resources.setup();
+    cthul.setup_resources();
 
     cthul.start_input_loop();
     cthul.shutdown_SDL2();

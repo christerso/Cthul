@@ -13,13 +13,25 @@
 
 using namespace RM;
 
-ResourceManager::ResourceManager(SDL_Renderer* renderer): m_renderer(renderer) {}
+ResourceManager::ResourceManager()
+{
+    
+}
 
-ResourceManager::~ResourceManager() {}
+ResourceManager::~ResourceManager()
+{
+    // destroyed in cthul class
+    m_renderer = nullptr;
+}
 
-void ResourceManager::setup()
+void ResourceManager::setup_initial_resources()
 {
     load_image("Adam", "resources/images/human.png");
+}
+
+void ResourceManager::set_renderer(SDL_Renderer* renderer)
+{
+    m_renderer = renderer;
 }
 
 // initialise a FreeImage bitmap and return a pointer to it.
@@ -90,7 +102,12 @@ SDL_Texture* ResourceManager::load_image(std::string name, std::string filename)
     return texture;
 }
 
-SDL_Texture* ResourceManager::get_image_from_store(std::string image)
+SDL_Texture* ResourceManager::grab_random_wallpaper_image()
+{
+    return nullptr;
+}
+
+SDL_Texture* ResourceManager::get_image(std::string image)
 {
     if (m_image_store.find(image) == m_image_store.end())
     {
