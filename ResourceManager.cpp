@@ -13,25 +13,18 @@
 
 using namespace RM;
 
-ResourceManager::ResourceManager()
-{
-    
-}
-
-ResourceManager::~ResourceManager()
-{
-    // destroyed in cthul class
-    m_renderer = nullptr;
-}
-
 void ResourceManager::setup_initial_resources()
 {
-    load_image("Adam", "resources/images/human.png");
+    load_image("map", "resources/images/kings.jpg", false);
+    load_image("human-axe-rider", "resources/images/human-axe-rider.png", true);
+    load_image("human_shieldman-rider", "resources/images/human-shieldman-rider.png", true);
+    load_image("human-spearman-rider", "resources/images/human-spearman-rider.png", true);
+    load_image("human-swordman", "resources/images/human-swordman.png", true);
 }
 
 void ResourceManager::set_renderer(SDL_Renderer* renderer)
 {
-    m_renderer = renderer;
+    renderer_ = renderer;
 }
 
 // initialise a FreeImage bitmap and return a pointer to it.
@@ -42,7 +35,7 @@ FIBITMAP* ResourceManager::get_freeimage_bitmap(std::string filename)
     return freeimage_bitmap;
 }
 
-SDL_Surface* ResourceManager::get_sdl_surface(FIBITMAP* freeimage_bitmap, int is_grayscale)
+SDL_Surface* ResourceManager::get_sdl_surface(FIBITMAP* freeimage_bitmap, int is_greyscale)
 {
     // loaded image is upside down, so flip it.
     FreeImage_FlipVertical(freeimage_bitmap);
@@ -59,7 +52,7 @@ SDL_Surface* ResourceManager::get_sdl_surface(FIBITMAP* freeimage_bitmap, int is
         exit(1);
     }
 
-    if (is_grayscale)
+    if (is_greyscale)
     {
         // to display a gray-scale image we need to create a custom palette.
         SDL_Color colors[256];
@@ -73,16 +66,16 @@ SDL_Surface* ResourceManager::get_sdl_surface(FIBITMAP* freeimage_bitmap, int is
     return sdl_surface;
 }
 
-SDL_Texture* ResourceManager::load_image(std::string name, std::string filename)
+SDL_Texture* ResourceManager::load_image(const std::string name, const std::string filename, bool is_grayscale)
 {
-    auto bitmap = get_freeimage_bitmap(filename);
+    const auto bitmap = get_freeimage_bitmap(filename);
     if (bitmap == nullptr)
     {
         LOG(ERROR) << fmt::format("unable to load image with freeimage: {}", filename.c_str());
         return nullptr;
     }
 
-    auto sdl_surface = get_sdl_surface(bitmap, true);
+    const auto sdl_surface = get_sdl_surface(bitmap, is_grayscale);
     if (sdl_surface == nullptr)
     {
         LOG(ERROR) << "unable to load sdl surface";
@@ -90,31 +83,32 @@ SDL_Texture* ResourceManager::load_image(std::string name, std::string filename)
     }
 
     // create texture from surface pixels
-    auto texture = SDL_CreateTextureFromSurface(m_renderer, sdl_surface);
+    const auto texture = SDL_CreateTextureFromSurface(renderer_, sdl_surface);
     if (texture == nullptr)
     {
         LOG(ERROR) << fmt::format("unable to create texture from {}! SDL Error: {}", filename.c_str(), SDL_GetError());
     }
     SDL_FreeSurface(sdl_surface);
-    m_image_store[name] = texture;
+
+    std::unique_ptr<Sprite> sprite(new Sprite);
+    SDL_QueryTexture(texture, sprite->format, sprite->access, &sprite->rect.w, &sprite->rect.h);
+    sprite->texture = texture;
+    image_store_[name] = std::move(sprite);
+
     LOG(INFO) << fmt::format("loaded image: {} from {}", name, filename);
 
     return texture;
 }
 
-SDL_Texture* ResourceManager::grab_random_wallpaper_image()
-{
-    return nullptr;
-}
 
-SDL_Texture* ResourceManager::get_image(std::string image)
+const Sprite& ResourceManager::get_sprite(const std::string name)
 {
-    if (m_image_store.find(image) == m_image_store.end())
+    if (image_store_.find(name) == image_store_.end())
     {
-        LOG(ERROR) << fmt::format("image not found in image store {}", image);
-        return nullptr;
+        LOG(ERROR) << fmt::format("image not found in image store {}", name);
+        throw std::runtime_error("image was not found");
     }
-    return m_image_store[image];
+    return *image_store_[name];
 }
 
 // read json data for images to load: TODO to be continued...

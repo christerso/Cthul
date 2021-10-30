@@ -3,7 +3,7 @@
 #
 cmake_minimum_required (VERSION 3.8)
 project(Cthul)
-
+set(CMAKE_ARGS "-Wno-dev")
 set(CMAKE_CXX_STANDARD 17)
 if(MSVC)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
@@ -26,7 +26,9 @@ endif()
 
 make_directory (${CMAKE_BINARY_DIR}/logging)
 
-add_executable (Ctuhl "Cthul.cpp" "Cthul.h" "ResourceManager.h" "ResourceManager.cpp" "resources/entities/entities.h")
+add_executable (Ctuhl "Cthul.cpp" "Cthul.h" "ResourceManager.h" "ResourceManager.cpp" "resources/entities/entities.h" "astar.cpp" "astar.h")
+add_custom_target(copy-runtime-files ALL
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/resources ${CMAKE_BINARY_DIR}/resources)
 
 set(CMAKE_MAKE_PROGRAM ninja)
 

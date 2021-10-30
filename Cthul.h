@@ -15,6 +15,13 @@
 class Cthul
 {
 public:
+    enum MOUSE_BUTTONS
+    {
+        LEFT = 0,
+        MIDDLE = 1,
+        RIGHT = 2
+    };
+
     Cthul();
 
     ~Cthul();
@@ -25,11 +32,13 @@ public:
     void start_input_loop();
     void setup_resources();
 
-    SDL_Renderer* m_renderer = nullptr;
-    SDL_Window* m_window = nullptr;
-    SDL_Surface* m_screen_surface = nullptr;
+    SDL_Renderer* renderer_ = nullptr;
+    SDL_Window* window_ = nullptr;
+    SDL_Surface* screen_surface_ = nullptr;
+
 private:
-    RM::ResourceManager m_resources;
+    RM::ResourceManager resources_;
+    std::vector<bool> mouse_button_states_;
 };
 
 #undef main

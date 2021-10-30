@@ -2,17 +2,23 @@
 //
 
 #include "Cthul.h"
-
+#include <SDL2/SDL.h>
 #include <fmt/format.h>
 
 using namespace RM;
 
-Cthul::Cthul() {}
+Cthul::Cthul()
+{
+    for (int i = 0; i < 3; i++)
+    {
+        mouse_button_states_.push_back(false);
+    }
+}
 
 Cthul::~Cthul()
 {
-    SDL_DestroyRenderer(m_renderer);
-    SDL_DestroyWindow(m_window);
+    SDL_DestroyRenderer(renderer_);
+    SDL_DestroyWindow(window_);
 }
 
 void Cthul::initialize_SDL2()
@@ -26,7 +32,8 @@ void Cthul::initialize_SDL2()
 
 void Cthul::shutdown_SDL2()
 {
-    m_window = nullptr;
+    window_ = nullptr;
+
     SDL_Quit();
 
     LOG(INFO) << "SDL2 is exiting..." << std::endl;
@@ -36,8 +43,8 @@ void Cthul::create_window()
 {
 
     // Create window
-    m_window = SDL_CreateWindow("Cthul", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 768, SDL_WINDOW_OPENGL);
-    if (m_window == nullptr)
+    window_ = SDL_CreateWindow("Cthul", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 768, SDL_WINDOW_OPENGL);
+    if (window_ == nullptr)
     {
         LOG(ERROR) << fmt::format("Window could not be created !SDL_Error: {}", SDL_GetError());
         shutdown_SDL2();
@@ -45,61 +52,173 @@ void Cthul::create_window()
     else
     {
         // Get window surface
-        m_screen_surface = SDL_GetWindowSurface(m_window);
+        screen_surface_ = SDL_GetWindowSurface(window_);
     }
-    m_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED);
-    if (m_renderer == nullptr)
+    renderer_ = SDL_CreateRenderer(window_, -1, SDL_RENDERER_ACCELERATED);
+    if (renderer_ == nullptr)
     {
         LOG(ERROR) << fmt::format("renderer could not be created! SDL Error: {}", SDL_GetError());
     }
-    m_resources.set_renderer(m_renderer);
+    resources_.set_renderer(renderer_);
     // initialize renderer color
-    SDL_SetRenderDrawColor(m_renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+    SDL_SetRenderDrawColor(renderer_, 0xFF, 0xFF, 0xFF, 0xFF);
 }
 
 void Cthul::setup_resources()
 {
-    m_resources.setup_initial_resources();
+    resources_.setup_initial_resources();
 }
 
 void Cthul::start_input_loop()
 {
+    int width{2048};
+    int height{2048};
     bool running = true;
-    bool quit = false;
-
+    const int FPS = 144;
+    const int scrollSpeed = 50;
+    const int delay_time = static_cast<int>(1000.0f / FPS);
     // Event handler
-    SDL_Event e;
-
-    int delta_x = 0;
-    int delta_y = 0;
-    SDL_Rect a{0,0,100,100};
-    auto tex = m_resources.get_image("Adam");
+    int prevTime{};
+    int currentTime{};
+    int delta = {};
+    int delta_x = {};
+    int delta_y = {};
+    int map_width = {};
+    int map_height = {};
+    SDL_Rect draw_rect{};
+    auto tex = resources_.get_sprite("map");
+    SDL_QueryTexture(tex.texture, nullptr, nullptr, &map_width, &map_height);
+    SDL_Rect position = {0, 0, map_width, map_height};
+    SDL_Rect cameraRect = {0, 0, 1024, 1024};
     // Handle events on queue
+    // Get map width and height for the scrolling limits
+    SDL_Event ev{};
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2");
     while (running)
     {
-        Uint32 ticks = SDL_GetTicks();
-        while (SDL_PollEvent(&e) != 0)
+        prevTime = currentTime;
+        Uint32 currentTime = SDL_GetTicks();
+        delta = static_cast<int>(currentTime - prevTime);
+        while (SDL_PollEvent(&ev) != 0)
         {
-            if (e.type == SDL_QUIT)
+            switch (ev.type)
             {
-                running = false;
+            case SDL_MOUSEBUTTONDOWN:
+            {
+                if (ev.button.button == SDL_BUTTON_LEFT)
+                {
+                    mouse_button_states_[LEFT] = true;
+                }
+                if (ev.button.button == SDL_BUTTON_MIDDLE)
+                {
+                    mouse_button_states_[MIDDLE] = true;
+                }
+                if (ev.button.button == SDL_BUTTON_RIGHT)
+                {
+                    mouse_button_states_[RIGHT] = true;
+                }
             }
-            else if (e.type == SDL_TEXTINPUT)
+            case SDL_MOUSEBUTTONUP:
             {
+                if (ev.button.button == SDL_BUTTON_LEFT)
+                {
+                    mouse_button_states_[LEFT] = false;
+                }
+            /* Look for a keypress */
+            case SDL_KEYDOWN:
+                if (ev.key.keysym.sym == SDLK_q)
+                {
+                    // quit
+                    running = false;
+                }
+                if (ev.key.keysym.sym == SDLK_w)
+                {
+                    // move up
+                    LOG(INFO) << "Camera rect y" << cameraRect.y << std::endl;
+                    LOG(INFO) << "Position y" << position.y << std::endl;
+                    LOG(INFO) << "Map Width:" << map_height;
+                    if (position.y > 0)
+                    {
+                        position.y -= scrollSpeed;
+                    }
+                    if (position.y < 0)
+                    {
+                        position.y = 0;
+                    }
+                }
+                if (ev.key.keysym.sym == SDLK_a)
+                {
+                    // move left;
+                    LOG(INFO) << "Camera rect x" << cameraRect.x << std::endl;
+                    LOG(INFO) << "Position x" << position.x << std::endl;
+                    LOG(INFO) << "Map Width:" << map_width;
+                    if (position.x > 0)
+                    {
+                        position.x -= scrollSpeed;
+                    }
+                    if (position.x < 0)
+                    {
+                        position.x = 0;
+                    }
+                }
+                if (ev.key.keysym.sym == SDLK_d)
+                {
+                    // move right
+                    LOG(INFO) << "Map Width:" << map_width;
+                    LOG(INFO) << "Camera rect w" << cameraRect.w << std::endl;
+                    LOG(INFO) << "Position x" << position.x << std::endl;
+                    if (position.x < cameraRect.w)
+                    {
+                        position.x += scrollSpeed;
+                    }
+                    if (position.x > cameraRect.w)
+                    {
+                        position.x = cameraRect.w;
+                    }
+                }
+                if (ev.key.keysym.sym == SDLK_s)
+                {
+                    // move down
+                    LOG(INFO) << "Map Height:" << height;
+                    LOG(INFO) << "Camera rect h" << cameraRect.h << std::endl;
+                    LOG(INFO) << "Position y" << position.y << std::endl;
+                    if (position.y < cameraRect.h)
+                    {
+                        position.y += scrollSpeed;
+                    }
+                    if (position.y > cameraRect.h)
+                    {
+                        position.y = cameraRect.h;
+                    }
+                }
+                if (ev.type == SDL_QUIT)
+                {
+                    running = false;
+                }
+                else if (ev.type == SDL_TEXTINPUT)
+                {
+                    LOG(INFO) << ev.text.text << std::endl;
+                }
+                else if (ev.type == SDL_MOUSEMOTION)
+                {
+                    delta_x += ev.motion.x;
+                    delta_y += ev.motion.y;
+                }
+            }
+            }
+            draw_rect = {position.x - cameraRect.x, position.y - cameraRect.y, position.w - cameraRect.w, position.h - cameraRect.h};
 
-                LOG(INFO) << e.text.text << std::endl;
-            }
-            else if (e.type = SDL_MOUSEMOTION)
-            {
-                delta_x += e.motion.x;
-                delta_y += e.motion.y;
-            }
+            // clear screen
+            SDL_RenderClear(renderer_);
+            SDL_RenderCopy(renderer_, tex.texture, &draw_rect, NULL);
+            // Render texture to screen
+            // SDL_RenderCopy(renderer_, tex, NULL, &a);
+            SDL_RenderPresent(renderer_);
         }
-        // clear screen
-        SDL_RenderClear(m_renderer);
+        if (delta < delay_time)
 
-        // Render texture to screen
-        SDL_RenderCopy(m_renderer, tex, NULL, &a);
-        SDL_RenderPresent(m_renderer);
+        {
+            SDL_Delay((int)(delay_time - delta));
+        }
     }
 }

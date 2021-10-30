@@ -1,3 +1,6 @@
+cmake-build*
 out
 .vs
 /Folder.DotSettings.user
+.idea
+enc_temp_folder

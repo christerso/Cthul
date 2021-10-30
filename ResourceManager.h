@@ -14,38 +14,42 @@
 */
 namespace RM
 {
-using ImageStore = std::unordered_map<std::string, SDL_Texture*>;
+struct Sprite
+{
+    SDL_Texture* texture  {};
+    SDL_Rect rect {};
+    Uint32* format {};
+    int* access {};
+};
 
+using ImageStore = std::unordered_map<std::string, std::unique_ptr<Sprite>>;
 using ResourceLoader = std::unordered_map<std::string, std::function<SDL_Texture*(std::string, std::string)>>;
 
 class ResourceManager
 {
 public:
-    ResourceManager();
-     ~ResourceManager();
-
     // setup initial resources
     // this means load level, load everything belonging to the level etc
     void setup_initial_resources();
     void set_renderer(SDL_Renderer* renderer);
+
     // This load function should be generic.
     // Anything given should be handled.
-    virtual SDL_Texture* load_image(std::string name, std::string filename);
-    SDL_Texture* grab_random_wallpaper_image();
-    virtual SDL_Texture* get_image(std::string image);
+    virtual SDL_Texture* load_image(const std::string name, const std::string filename, bool is_grayscale);
+    virtual const Sprite& get_sprite(const std::string name);
     virtual bool load_entity(std::string name, std::string filename);
 
 private:
     // using Freeimage
     FIBITMAP* get_freeimage_bitmap(std::string filename);
-    SDL_Surface* get_sdl_surface(FIBITMAP* freeimage_bitmap, int is_grayscale);
+    SDL_Surface* get_sdl_surface(FIBITMAP* freeimage_bitmap, int is_greyscale);
 
     virtual bool load_level(std::string name);
 
 private:
-    ResourceLoader m_resource_loader;
-    ImageStore m_image_store;
-    SDL_Renderer* m_renderer;
+    ResourceLoader resource_loader_;
+    ImageStore image_store_;
+    SDL_Renderer* renderer_ = nullptr;
 };
 } // namespace RM
 
