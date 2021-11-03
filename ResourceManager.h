@@ -2,8 +2,8 @@
 #define RESOURCE_MANAGER_H
 
 #include <SDL2/SDL.h>
-#undef main
-#include <FreeImage.h>
+#include <SDL_image.h>
+
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -14,17 +14,19 @@
 */
 namespace RM
 {
-struct Sprite
+struct [[nodiscard]] Sprite
 {
-    SDL_Texture* texture  {};
-    SDL_Rect rect {};
-    Uint32* format {};
-    int* access {};
+    SDL_Texture* texture{};
+    SDL_Rect source_rect{};
+    SDL_FRect destination_rect{};
+    Uint32* format{};
+    int* access{};
 };
 
 using ImageStore = std::unordered_map<std::string, std::unique_ptr<Sprite>>;
+using EntityStore = std::unordered_map<std::string, std::unique_ptr<Sprite>>;
 using ResourceLoader = std::unordered_map<std::string, std::function<SDL_Texture*(std::string, std::string)>>;
-
+using MapData = std::vector<std::vector<int>>;
 class ResourceManager
 {
 public:
@@ -32,24 +34,22 @@ public:
     // this means load level, load everything belonging to the level etc
     void setup_initial_resources();
     void set_renderer(SDL_Renderer* renderer);
+    const MapData& get_astar_data() const;
 
     // This load function should be generic.
     // Anything given should be handled.
-    virtual SDL_Texture* load_image(const std::string name, const std::string filename, bool is_grayscale);
-    virtual const Sprite& get_sprite(const std::string name);
-    virtual bool load_entity(std::string name, std::string filename);
-
-private:
-    // using Freeimage
-    FIBITMAP* get_freeimage_bitmap(std::string filename);
-    SDL_Surface* get_sdl_surface(FIBITMAP* freeimage_bitmap, int is_greyscale);
-
-    virtual bool load_level(std::string name);
-
+    const Sprite& load_image(const std::string& name, const std::string& filename, bool entity,
+                                     bool is_greyscale);
+    const Sprite& get_sprite(const std::string& name);
+    const EntityStore& get_entities() const;
+    void load_json(const std::string& name, const std::string& filename);
+    void load_astar_data(const std::string& filename);
 private:
     ResourceLoader resource_loader_;
     ImageStore image_store_;
+    EntityStore entity_store_;
     SDL_Renderer* renderer_ = nullptr;
+    MapData astar_data_;
 };
 } // namespace RM
 

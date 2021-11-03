@@ -1,18 +1,22 @@
 ﻿// Cthul.h : Include file for standard system include files,
 // or project specific include files.
 
-#ifndef CTHUL_H
-#define CTHUL_H
+#pragma once
+
+#include "kingdom.h"
 
 #include <iostream>
+#include <random>
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include "ResourceManager.h"
-#include "resources/entities/entities.h"
+#include "resourcemanager.h"
 
-class Cthul
+namespace king
+{
+
+class Kings
 {
 public:
     enum MOUSE_BUTTONS
@@ -22,29 +26,34 @@ public:
         RIGHT = 2
     };
 
-    Cthul();
+    Kings();
+    ~Kings();
 
-    ~Cthul();
-
-    void initialize_SDL2();
-    void shutdown_SDL2();
+    void start();
+    void initialize_sdl2();
+    void shutdown_sdl2();
     void create_window();
     void start_input_loop();
     void setup_resources();
+    void setup_kingdom();
+    void draw_sprites();
+    Kingdom& get_kingdom() const;
 
+private:
+    ThreadManager thread_manager_;
     SDL_Renderer* renderer_ = nullptr;
     SDL_Window* window_ = nullptr;
     SDL_Surface* screen_surface_ = nullptr;
-
-private:
+    std::unique_ptr<Kingdom> kingdom_;
     RM::ResourceManager resources_;
     std::vector<bool> mouse_button_states_;
 };
 
-#undef main
+} // namespace king
+
 int main(int argc, char* argv[])
 {
-    std::cout << "Starting Cthul" << std::endl;
+    std::cout << "starting kings" << std::endl;
 
     FLAGS_alsologtostderr = true;
     FLAGS_logbuflevel = google::GLOG_INFO;
@@ -55,21 +64,11 @@ int main(int argc, char* argv[])
     // parse command line flags
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
-    DLOG(INFO) << "Logging initialized";
+    DLOG(INFO) << "logging initialized";
 
-    Cthul cthul;
-
-    cthul.initialize_SDL2();
-    cthul.create_window();
-
-    cthul.setup_resources();
-
-    cthul.start_input_loop();
-    cthul.shutdown_SDL2();
-
+    king::Kings kings;
+    kings.start();
     google::ShutdownGoogleLogging();
 
     return 0;
 }
-
-#endif // CTHUL_H

@@ -1,5 +1,5 @@
-#include "../ResourceManager.h"
-#include "../ResourceManager.cpp"
+#include "../resourcemanager.h"
+#include "../resourcemanager.cpp"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <SDL2/SDL.h>

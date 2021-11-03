@@ -1,13 +1,5 @@
 
-//
-// Copyright (c) 2014 Christer Söderlund
-// All Rights Reserved.
-//
-// Unauthorized copying of this file, via any medium is strictly prohibited.
-//
-
-#ifndef ASTAR_H
-#define ASTAR_H
+#pragma once
 
 #include <cmath>
 #include <deque>
@@ -93,8 +85,8 @@ enum ENTITY_MODIFIERS
 
 struct Costs
 {
-    int g_score;
-    int h_score;
+    int g_score {};
+    int h_score {};
 };
 
 struct ScoreModifiers
@@ -104,7 +96,7 @@ struct ScoreModifiers
     LayerID layer;
     // SubLayer sub_layer;
     // Attributes attr;
-    int penalty_modifier;
+    int penalty_modifier {};
     // std::map<std::string, int> value;
 };
 
@@ -113,7 +105,7 @@ struct Entry
     bool blocked;
     Position position;
     Costs costs;
-    Entry* parent;
+    Entry* parent = nullptr;
 };
 
 class AStar
@@ -213,10 +205,10 @@ private:
     bool m_enable_debug;
     // Currently bound area
 
-    int* m_current_bound;
-    int m_map_size_x;
-    int m_map_size_y;
-    int* m_path_copy;
+    int* m_current_bound = nullptr;
+    int m_map_size_x {};
+    int m_map_size_y {};
+    int* m_path_copy = nullptr;
 
     Position m_best_scored_position;
     Position m_start_position;
@@ -236,4 +228,3 @@ private:
 
 } // namespace star
 
-#endif // ASTAR_H

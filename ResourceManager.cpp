@@ -1,6 +1,9 @@
-#include "ResourceManager.h"
+#include "resourcemanager.h"
 
-#include <FreeImage.h>
+#include "astar.h"
+#include "castle.h"
+
+#include "rapidcsv.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/functional.hpp>
@@ -15,11 +18,12 @@ using namespace RM;
 
 void ResourceManager::setup_initial_resources()
 {
-    load_image("map", "resources/images/kings.jpg", false);
-    load_image("human-axe-rider", "resources/images/human-axe-rider.png", true);
-    load_image("human_shieldman-rider", "resources/images/human-shieldman-rider.png", true);
-    load_image("human-spearman-rider", "resources/images/human-spearman-rider.png", true);
-    load_image("human-swordman", "resources/images/human-swordman.png", true);
+    load_image("map", "resources/images/kings.jpg", false, false);
+    load_image("human-axe-rider", "resources/images/human-axe-rider.png", true, true);
+    load_image("human_shieldman-rider", "resources/images/human-shieldman-rider.png", true, true);
+    load_image("human-spearman-rider", "resources/images/human-spearman-rider.png", true, true);
+    load_image("human-swordman", "resources/images/human-swordman.png", true, true);
+    load_astar_data("resources/data/kingdom_astar.csv");
 }
 
 void ResourceManager::set_renderer(SDL_Renderer* renderer)
@@ -27,98 +31,72 @@ void ResourceManager::set_renderer(SDL_Renderer* renderer)
     renderer_ = renderer;
 }
 
-// initialise a FreeImage bitmap and return a pointer to it.
-FIBITMAP* ResourceManager::get_freeimage_bitmap(std::string filename)
+const MapData& ResourceManager::get_astar_data() const
 {
-    FREE_IMAGE_FORMAT filetype = FreeImage_GetFileType(filename.c_str(), 0);
-    FIBITMAP* freeimage_bitmap = FreeImage_Load(filetype, filename.c_str(), 0);
-    return freeimage_bitmap;
+    return astar_data_;
 }
 
-SDL_Surface* ResourceManager::get_sdl_surface(FIBITMAP* freeimage_bitmap, int is_greyscale)
+const Sprite& ResourceManager::load_image(const std::string& name, const std::string& filename, bool entity,
+                                          bool is_grayscale)
 {
-    // loaded image is upside down, so flip it.
-    FreeImage_FlipVertical(freeimage_bitmap);
-
-    SDL_Surface* sdl_surface =
-        SDL_CreateRGBSurfaceFrom(FreeImage_GetBits(freeimage_bitmap), FreeImage_GetWidth(freeimage_bitmap),
-                                 FreeImage_GetHeight(freeimage_bitmap), FreeImage_GetBPP(freeimage_bitmap),
-                                 FreeImage_GetPitch(freeimage_bitmap), FreeImage_GetRedMask(freeimage_bitmap),
-                                 FreeImage_GetGreenMask(freeimage_bitmap), FreeImage_GetBlueMask(freeimage_bitmap), 0);
-
-    if (sdl_surface == nullptr)
+    SDL_Surface* image = IMG_Load(filename.c_str());
+    if (image == nullptr)
     {
-        LOG(ERROR) << fmt::format("failed to create surface: {}", SDL_GetError());
-        exit(1);
-    }
-
-    if (is_greyscale)
-    {
-        // to display a gray-scale image we need to create a custom palette.
-        SDL_Color colors[256];
-        for (int i = 0; i < 256; i++)
-        {
-            colors[i].r = colors[i].g = colors[i].b = i;
-        }
-        SDL_SetPaletteColors(sdl_surface->format->palette, colors, 0, 256);
-    }
-
-    return sdl_surface;
-}
-
-SDL_Texture* ResourceManager::load_image(const std::string name, const std::string filename, bool is_grayscale)
-{
-    const auto bitmap = get_freeimage_bitmap(filename);
-    if (bitmap == nullptr)
-    {
-        LOG(ERROR) << fmt::format("unable to load image with freeimage: {}", filename.c_str());
-        return nullptr;
-    }
-
-    const auto sdl_surface = get_sdl_surface(bitmap, is_grayscale);
-    if (sdl_surface == nullptr)
-    {
-        LOG(ERROR) << "unable to load sdl surface";
-        return nullptr;
+        LOG(INFO) << fmt::format("unable to load image: {} SDL Error {}", filename.c_str(), SDL_GetError());
+        throw std::runtime_error(
+            fmt::format("unable to load image: {} SDL Error {}", filename.c_str(), SDL_GetError()));
     }
 
     // create texture from surface pixels
-    const auto texture = SDL_CreateTextureFromSurface(renderer_, sdl_surface);
+    const auto texture = SDL_CreateTextureFromSurface(renderer_, image);
     if (texture == nullptr)
     {
-        LOG(ERROR) << fmt::format("unable to create texture from {}! SDL Error: {}", filename.c_str(), SDL_GetError());
+        throw std::runtime_error(
+            fmt::format("unable to create texture from {}! SDL Error: {}", filename.c_str(), SDL_GetError()));
     }
-    SDL_FreeSurface(sdl_surface);
+    SDL_FreeSurface(image);
 
     std::unique_ptr<Sprite> sprite(new Sprite);
-    SDL_QueryTexture(texture, sprite->format, sprite->access, &sprite->rect.w, &sprite->rect.h);
+    SDL_QueryTexture(texture, sprite->format, sprite->access, &sprite->source_rect.w, &sprite->source_rect.h);
     sprite->texture = texture;
-    image_store_[name] = std::move(sprite);
-
+    if (entity)
+    {
+        entity_store_[name] = std::move(sprite);
+    }
+    else
+    {
+        image_store_[name] = std::move(sprite);
+    }
     LOG(INFO) << fmt::format("loaded image: {} from {}", name, filename);
 
-    return texture;
+    return *image_store_[name];
 }
 
 
-const Sprite& ResourceManager::get_sprite(const std::string name)
+const Sprite& ResourceManager::get_sprite(const std::string& name)
 {
     if (image_store_.find(name) == image_store_.end())
     {
-        LOG(ERROR) << fmt::format("image not found in image store {}", name);
         throw std::runtime_error("image was not found");
     }
     return *image_store_[name];
 }
 
-// read json data for images to load: TODO to be continued...
-bool ResourceManager::load_level(std::string name)
+const EntityStore& ResourceManager::get_entities() const
 {
-    return true;
+    return entity_store_;
 }
 
-// all entities have unique names
-bool ResourceManager::load_entity(std::string name, std::string filename)
+void ResourceManager::load_astar_data(const std::string& filename)
+{
+    rapidcsv::Document doc(filename, rapidcsv::LabelParams(-1, -1));
+    for (auto i = 0; i < doc.GetRowCount(); i++)
+    {
+        astar_data_.emplace_back(doc.GetRow<int>(i));
+    }
+}
+
+void ResourceManager::load_json(const std::string& name, const std::string& filename)
 {
     if (std::ifstream file(filename, std::fstream::in); file.is_open())
     {
@@ -146,7 +124,5 @@ bool ResourceManager::load_entity(std::string name, std::string filename)
             LOG(ERROR) << "parsing failed: " << e.what() << std::endl;
             exit(-1);
         }
-        return true;
     }
-    return false;
 }

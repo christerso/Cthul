@@ -1,8 +1,3 @@
-## Next steps ##
+# TODO:
 
-* figurout which when it takes place / story.
-
-
-## Additionals ##
-
-* create music for intro
+Load sprite into map and make it move from a to b
