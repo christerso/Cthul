@@ -14,7 +14,7 @@
 
 #include <fstream>
 
-using namespace RM;
+using namespace king;
 
 void ResourceManager::setup_initial_resources()
 {
@@ -31,7 +31,7 @@ void ResourceManager::set_renderer(SDL_Renderer* renderer)
     renderer_ = renderer;
 }
 
-const MapData& ResourceManager::get_astar_data() const
+MapData& ResourceManager::get_astar_data()
 {
     return astar_data_;
 }
@@ -73,18 +73,18 @@ const Sprite& ResourceManager::load_image(const std::string& name, const std::st
 }
 
 
-const Sprite& ResourceManager::get_sprite(const std::string& name)
+Sprite* ResourceManager::get_sprite(const std::string& name)
 {
     if (image_store_.find(name) == image_store_.end())
     {
         throw std::runtime_error("image was not found");
     }
-    return *image_store_[name];
+    return image_store_[name].get();
 }
 
-const EntityStore& ResourceManager::get_entities() const
+EntityStore* ResourceManager::get_entities()
 {
-    return entity_store_;
+    return &entity_store_;
 }
 
 void ResourceManager::load_astar_data(const std::string& filename)
@@ -92,7 +92,11 @@ void ResourceManager::load_astar_data(const std::string& filename)
     rapidcsv::Document doc(filename, rapidcsv::LabelParams(-1, -1));
     for (auto i = 0; i < doc.GetRowCount(); i++)
     {
-        astar_data_.emplace_back(doc.GetRow<int>(i));
+        std::vector<int> row = doc.GetRow<int>(i);
+        for (auto& entry: row)
+        {
+            astar_data_.push_back(entry);
+        }
     }
 }
 

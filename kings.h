@@ -10,8 +10,9 @@
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
-
+#include <memory>
 #include "resourcemanager.h"
+#include "input.h"
 
 namespace king
 {
@@ -34,19 +35,18 @@ public:
     void shutdown_sdl2();
     void create_window();
     void start_input_loop();
-    void setup_resources();
     void setup_kingdom();
-    void draw_sprites();
-    Kingdom& get_kingdom() const;
+    Kingdom& get_kingdom();
 
 private:
-    ThreadManager thread_manager_;
+    Kingdom kingdom_;
     SDL_Renderer* renderer_ = nullptr;
     SDL_Window* window_ = nullptr;
     SDL_Surface* screen_surface_ = nullptr;
-    std::unique_ptr<Kingdom> kingdom_;
-    RM::ResourceManager resources_;
+    Input input_;
+    ResourceManager resources_;
     std::vector<bool> mouse_button_states_;
+
 };
 
 } // namespace king
@@ -54,7 +54,6 @@ private:
 int main(int argc, char* argv[])
 {
     std::cout << "starting kings" << std::endl;
-
     FLAGS_alsologtostderr = true;
     FLAGS_logbuflevel = google::GLOG_INFO;
     FLAGS_log_dir = "logging";
@@ -65,7 +64,6 @@ int main(int argc, char* argv[])
     gflags::ParseCommandLineFlags(&argc, &argv, true);
 
     DLOG(INFO) << "logging initialized";
-
     king::Kings kings;
     kings.start();
     google::ShutdownGoogleLogging();

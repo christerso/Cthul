@@ -1,4 +1,5 @@
 #pragma once
+#include "movable.h"
 #include "position.h"
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -9,15 +10,16 @@ namespace king
 using CharacterID = std::string;
 using Owner = std::string;
 
-class Character
+class Character : public MovableEntity
 {
 
 public:
-    explicit Character(Position& pos);
+    Character();
+    ~Character();
     const CharacterID& get_id();
-
-private:
-    Position position_;
+    void move(Origin origin) override;
+    void draw(SDL_Renderer* renderer) override;
+protected:
     CharacterID character_id_;
     std::string name_;
 };

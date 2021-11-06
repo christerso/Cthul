@@ -50,12 +50,12 @@ namespace star
 #define DEBUG(x)
 #endif
 
-typedef int LayerID;
-typedef int SubLayer;
-typedef int WeightValue;
-typedef WeightValue* WeightValues;
-typedef int Position;
-typedef int FScore;
+using LayerID = int;
+using SubLayer = int;
+using WeightValue = int;
+using WeightValues = WeightValue*;
+using Position = int;
+using FScore = int;
 
 enum MAIN_LAYERS
 {
@@ -102,9 +102,9 @@ struct ScoreModifiers
 
 struct Entry
 {
-    bool blocked;
-    Position position;
-    Costs costs;
+    bool blocked = false;
+    Position position {};
+    Costs costs {};
     Entry* parent = nullptr;
 };
 
@@ -183,14 +183,7 @@ private:
      */
     void add_open_list_entry_by_position(Position pos, Entry* entry);
 
-    /**
-     * @brief add_open_list_entry_by_score
-     * @param score Score to add
-     * @param entry Entry to add
-     */
-    void add_open_list_entry_by_score(FScore score, Entry* entry);
-    void add_closed_list_entry_by_position(Position pos, Entry* entry);
-    void add_closed_list_entry_by_score(FScore score, Entry* entry);
+     void add_closed_list_entry_by_position(Position pos, Entry* entry);
     bool change_open_to_closed(Entry* entry);
 
     /**
@@ -199,7 +192,6 @@ private:
      */
     bool build_open_list();
     bool buildPath(const Entry* parentEntry);
-    void recalc();
     void cleanup();
 
     bool m_enable_debug;

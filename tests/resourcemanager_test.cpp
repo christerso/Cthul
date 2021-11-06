@@ -6,7 +6,7 @@
 #include <string>
 
 
-class ResourceManagerMock : public RM::ResourceManager
+class ResourceManagerMock : public ResourceManager
 {
 public:
 

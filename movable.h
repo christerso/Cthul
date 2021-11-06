@@ -2,6 +2,8 @@
 
 #include "position.h"
 
+#include <SDL_render.h>
+
 namespace king
 {
 
@@ -12,21 +14,31 @@ enum class Behaviour
     CHARACTER
 };
 
+enum class Origin
+{
+    PLAYER,
+    AI
+};
+
 enum class Action
 {
     GUARD = 0,
     MOVE,
 };
 
-class Movable
+class MovableEntity
 {
 public:
-    virtual void move(Position pos) = 0;
 
-    void setup();
+    virtual void move(Origin origin) = 0;
+    virtual void draw(SDL_Renderer* renderer) = 0;
+
+    void set_position(Position& pos) { position_ = pos; };
+    Position& get_position() { return position_; }
+
 protected:
     Behaviour behaviour_ = Behaviour::STATIC;
-    Position position;
+    Position position_;
 };
 
 } // namespace king

@@ -7,14 +7,14 @@ namespace king
 class Player : public Character
 {
 public:
-    explicit Player(Castle* castle);
+    Player();
     virtual ~Player();
     void create_inital_setup();
     Castle* get_castle() const;
     void set_castle(Castle* castle);
 
 private:
-    Castle* castle_ = nullptr;
+    Castle* castle_;
 };
 
 } // namespace king

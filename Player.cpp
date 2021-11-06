@@ -1,6 +1,8 @@
 #include "player.h"
 #include "common.h"
 
+#include <glog/logging.h>
+
 using namespace king;
 // Decide which castle belongs to player
 // Create initial army and commanders.
@@ -9,16 +11,13 @@ using namespace king;
 // Implement events that occurs as an army is moving
 // Add weather
 
-Player::Player(Castle* castle)
-    : Character(castle->get_position()) // players always starts in a castle
-    , castle_(castle)
+Player::Player()
 {
-    castle_->set_owner(this->get_id());
 }
 
 Player::~Player()
 {
-    castle_ = nullptr; // original ownership of all castles is the kingdom, not the player
+    LOG(INFO) << "Player destructor called";
 }
 
 void Player::create_inital_setup() {}

@@ -5,8 +5,7 @@
 #include <SDL2/SDL.h>
 #include <fmt/format.h>
 #include <thread_pool.hpp>
-#include "threadmanager.h"
-using namespace RM;
+
 using namespace king;
 
 Kings::Kings()
@@ -19,6 +18,7 @@ Kings::Kings()
 
 Kings::~Kings()
 {
+    delete &kingdom_;
     SDL_DestroyRenderer(renderer_);
     SDL_DestroyWindow(window_);
 }
@@ -30,11 +30,11 @@ void Kings::initialize_sdl2()
         LOG(ERROR) << "Could not initialize SDL: {}", SDL_GetError();
         exit(-1);
     }
-    int imgFlags = IMG_INIT_JPG|IMG_INIT_PNG;
-    if( !( IMG_Init( imgFlags ) & imgFlags ) )
+    int imgFlags = IMG_INIT_JPG | IMG_INIT_PNG;
+    if (!(IMG_Init(imgFlags) & imgFlags))
     {
-        printf( "SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError() );
-        exit (-1);
+        printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
+        exit(-1);
     }
 }
 
@@ -72,39 +72,23 @@ void Kings::create_window()
     SDL_SetRenderDrawColor(renderer_, 0xFF, 0xFF, 0xFF, 0xFF);
 }
 
-void Kings::setup_resources()
-{
-    resources_.setup_initial_resources();
-   // auto my_future = pool.submit(task to run, arguments);
-}
-
 void Kings::setup_kingdom()
 {
-    kingdom_ = std::make_unique<Kingdom>(Kingdom(thread_manager_));
+    resources_.setup_initial_resources();
+    kingdom_.set_input_handler(&input_);
+    kingdom_.set_astar_data(resources_.get_astar_data());
+    kingdom_.start_threads();
 }
 
-void Kings::draw_sprites()
+Kingdom& Kings::get_kingdom()
 {
-    // Iterate over all sprites needed rendering
-    // TODO: Setup rules and instantiate beginning setup
-    // TODO: First now, just draw 1 sprite and move it around
-    SDL_FRect d = {0.f,0.f,100.f,120.f};
-    for (auto const& [key, val] : resources_.get_entities()) {
-
-        SDL_RenderCopyExF(renderer_, val.get()->texture, &val->source_rect, &d, 0, nullptr, SDL_FLIP_NONE);
-    }
-}
-
-Kingdom& Kings::get_kingdom() const
-{
-    return *kingdom_;
+    return kingdom_;
 }
 
 void Kings::start()
 {
     initialize_sdl2();
     create_window();
-    setup_resources();
     setup_kingdom();
     start_input_loop();
     shutdown_sdl2();
@@ -127,7 +111,7 @@ void Kings::start_input_loop()
     int map_height = {};
     SDL_Rect draw_rect{};
     const auto tex = resources_.get_sprite("map");
-    SDL_QueryTexture(tex.texture, nullptr, nullptr, &map_width, &map_height);
+    SDL_QueryTexture(tex->texture, nullptr, nullptr, &map_width, &map_height);
     SDL_Rect position = {0, 0, map_width, map_height};
     const SDL_Rect camera_rect = {0, 0, position.w / 4, position.h / 4};
     // Handle events on queue
@@ -136,7 +120,9 @@ void Kings::start_input_loop()
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2");
     int updated_delta = 0;
     int movement_time = 200;
-    while (!thread_manager_.quit)
+
+    auto exit = false;
+    while (true)
     {
         previous_time = current_time;
         current_time = SDL_GetTicks();
@@ -152,6 +138,11 @@ void Kings::start_input_loop()
                 if (ev.button.button == SDL_BUTTON_LEFT)
                 {
                     mouse_button_states_[LEFT] = true;
+                    MousePosition entry;
+                    SDL_GetMouseState(&entry.x_pos, &entry.y_pos);
+                    DLOG(INFO) << "Source Mouse X: " << entry.x_pos << " Y: " << entry.y_pos;
+                    // this is a temporary buffer to be processed by the input thread
+                    input_.current_left_mouse_entry = entry;
                 }
                 if (ev.button.button == SDL_BUTTON_MIDDLE)
                 {
@@ -160,6 +151,11 @@ void Kings::start_input_loop()
                 if (ev.button.button == SDL_BUTTON_RIGHT)
                 {
                     mouse_button_states_[RIGHT] = true;
+                    MousePosition entry;
+                    DLOG(INFO) << "Target Mouse X: " << entry.x_pos << " Y: " << entry.y_pos;
+                    SDL_GetMouseState(&entry.x_pos, &entry.y_pos);
+                    // this is a temporary buffer to be processed by the input thread
+                    input_.current_right_mouse_entry = entry;
                 }
                 break;
             }
@@ -173,10 +169,11 @@ void Kings::start_input_loop()
             }
             /* Look for a keypress */
             case SDL_KEYDOWN:
+            {
                 if (ev.key.keysym.sym == SDLK_q)
                 {
                     // quit
-                    thread_manager_.quit = true;
+                    exit = true;
                 }
                 if (ev.key.keysym.sym == SDLK_w || ev.key.keysym.sym == SDLK_UP)
                 {
@@ -189,6 +186,23 @@ void Kings::start_input_loop()
                     {
                         position.y = 0;
                     }
+                }
+                if (ev.key.keysym.sym == SDLK_LCTRL)
+                {
+                    // when lctrl is down and left mouse button is clicked after having selected an army, waypoints are
+                    // queued
+                    input_.left_ctrl_down = true;
+                    LOG(INFO) << "LCTRL down";
+                }
+                if (ev.key.keysym.sym == SDLK_LALT)
+                {
+                    input_.left_alt_down = true;
+                    LOG(INFO) << "LALT down";
+                }
+                if (ev.key.keysym.sym == SDLK_LSHIFT)
+                {
+                    input_.left_shift_down = true;
+                    LOG(INFO) << "LSHIFT down";
                 }
                 if (ev.key.keysym.sym == SDLK_a || ev.key.keysym.sym == SDLK_LEFT)
                 {
@@ -228,7 +242,7 @@ void Kings::start_input_loop()
                 }
                 if (ev.type == SDL_QUIT)
                 {
-                    thread_manager_.quit = true;
+                    exit = true;
                 }
                 else if (ev.type == SDL_TEXTINPUT)
                 {
@@ -239,23 +253,51 @@ void Kings::start_input_loop()
                     delta_x += ev.motion.x;
                     delta_y += ev.motion.y;
                 }
+                break;
+            }
+            case SDL_KEYUP:
+            {
+                if (ev.key.keysym.sym == SDLK_LCTRL)
+                {
+                    input_.left_ctrl_down = false;
+                    LOG(INFO) << "LCTRL up";
+                }
+                if (ev.key.keysym.sym == SDLK_LALT)
+                {
+                    input_.left_alt_down = false;
+                    LOG(INFO) << "LALT up";
+                }
+                if (ev.key.keysym.sym == SDLK_LSHIFT)
+                {
+                    input_.left_shift_down = false;
+                    LOG(INFO) << "LSHIFT up";
+                }
+            }
             default:
                 break;
             }
+            if (exit)
+            {
+                break;
+            }
+        }
+        if (exit)
+        {
+            break;
         }
         draw_rect = {position.x, position.y, position.w - camera_rect.w, position.h - camera_rect.h};
 
         // clear screen
         SDL_RenderClear(renderer_);
-        SDL_RenderCopy(renderer_, tex.texture, &draw_rect, NULL);
-        draw_sprites();
+        SDL_RenderCopy(renderer_, tex->texture, &draw_rect, NULL);
+        kingdom_.draw_sprites(renderer_);
         // Render texture to screen
         // SDL_RenderCopy(renderer_, tex, NULL, &a);
         SDL_RenderPresent(renderer_);
-    }
-    if (delta < delay_time)
+        if (delta < delay_time)
 
-    {
-        SDL_Delay(delay_time - delta);
+        {
+            SDL_Delay(delay_time - delta);
+        }
     }
 }

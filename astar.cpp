@@ -1,15 +1,5 @@
-//
-// Copyright (c) 2014 Christer Söderlund
-// All Rights Reserved.
-//
-// Unauthorized copying of this file, via any medium is strictly prohibited.
-//
-
-// Own
-
 #include "astar.h"
 
-// std
 #include <algorithm>
 #include <new>
 #include <string>
@@ -25,18 +15,12 @@ const static int DIAGONAL_COST = 14;
 
 AStar::AStar()
     : m_enable_debug(false)
-    , m_current_bound(0)
-    , m_map_size_x(0)
-    , m_map_size_y(0)
     , m_start_position(0)
 {
 }
 
 AStar::AStar(WeightValues array, int x, int y)
     : m_enable_debug(false)
-    , m_current_bound(0)
-    , m_map_size_x(0)
-    , m_map_size_y(0)
     , m_start_position(0)
 {
     m_map_size_x = x;
@@ -52,7 +36,7 @@ AStar::~AStar()
 void AStar::cleanup()
 {
     // Cleaning up the open list
-    PositionList::iterator it_p = m_open_position_list.begin(), it_e = m_open_position_list.end();
+    auto it_p = m_open_position_list.begin(), it_e = m_open_position_list.end();
 
     while (it_p != it_e)
     {
@@ -70,7 +54,7 @@ void AStar::cleanup()
     }
 }
 
-bool AStar::bind(WeightValues array, int x, int y, bool copy)
+bool AStar::bind(const WeightValues array, const int x, const int y, bool copy)
 {
     if (array && x && y)
     {
@@ -86,17 +70,7 @@ bool AStar::bind(WeightValues array, int x, int y, bool copy)
 
 void AStar::size(int x, int y) {}
 
-LayerID AStar::add_penalty_layer(const WeightValues array, size_t size)
-{
-    return 0;
-}
-
-bool AStar::remove_penalty_layer(LayerID id)
-{
-    return true;
-}
-
-bool AStar::astar(int from_x, int from_y, int to_x, int to_y, bool ignore_blocked, const int** path)
+bool AStar::astar(const int from_x, const int from_y, const int to_x, const int to_y, bool ignore_blocked, const int** path)
 {
     if (!m_current_bound)
     {
@@ -126,7 +100,7 @@ bool AStar::astar(int from_x, int from_y, int to_x, int to_y, bool ignore_blocke
             if (m_current_bound[position] == 0)
             {
                 DEBUG("Moved " << j << "," << i << " to closed list" << std::endl);
-                Entry* entry = 0;
+                Entry* entry = nullptr;
                 entry = new (std::nothrow) Entry();
 
                 if (!entry)
@@ -138,7 +112,7 @@ bool AStar::astar(int from_x, int from_y, int to_x, int to_y, bool ignore_blocke
                 entry->position = position;
                 entry->costs.g_score = 0; // Will never move to this so zero it
                 entry->costs.h_score = 0; // The heuristic doesn't matter
-                entry->parent = 0;        // Start has no parent
+                entry->parent = nullptr;        // Start has no parent
 
                 add_closed_list_entry_by_position(position, entry);
             }
@@ -150,8 +124,12 @@ bool AStar::astar(int from_x, int from_y, int to_x, int to_y, bool ignore_blocke
     m_end_position = m_map_size_x * to_y + to_x;
 
     // Now take the start point and add it to the open list
-    Entry* entry = 0;
+    Entry* entry = nullptr;
     entry = new (std::nothrow) Entry();
+    if (entry == nullptr)
+    {
+        return false;
+    }
     entry->blocked = false;
     entry->position = m_start_position;
     entry->costs.g_score = 0;
@@ -174,7 +152,7 @@ bool AStar::astar(int from_x, int from_y, int to_x, int to_y, bool ignore_blocke
     return true;
 }
 
-void AStar::add_open_list_entry_by_position(Position pos, Entry* entry)
+void AStar::add_open_list_entry_by_position(const Position pos, Entry* entry)
 {
     m_open_score_list.insert(std::make_pair(entry->costs.h_score + entry->costs.g_score, entry));
     m_open_position_list[pos] = entry;
@@ -191,10 +169,10 @@ void AStar::add_closed_list_entry_by_position(Position pos, Entry* entry)
 bool AStar::change_open_to_closed(Entry* entry)
 {
     int score = entry->costs.g_score + entry->costs.h_score;
-    std::pair<ScoreList::iterator, ScoreList::iterator> ret;
 
-    ret = m_open_score_list.equal_range(score);
-    ScoreList::iterator it_f = ret.first, it_e = ret.second;
+    const std::pair<ScoreList::iterator, ScoreList::iterator> ret = m_open_score_list.equal_range(score);
+    auto it_f = ret.first;
+    const auto it_e = ret.second;
 
     while (it_f != it_e)
     {
@@ -223,17 +201,17 @@ void AStar::enable_debug_dump(bool enable)
 
 bool AStar::build_open_list()
 {
-    Entry* active_entry = 0;
+    Entry* active_entry = nullptr;
     Position pos = 0;
     Position pos_x = 0;
     Position pos_y = 0;
-    Position end_x = m_end_position % m_map_size_x;
-    Position end_y = m_end_position / m_map_size_x;
-    int size = sizeof(square_check) / sizeof(square_check[0]);
+    const Position end_x = m_end_position % m_map_size_x;
+    const Position end_y = m_end_position / m_map_size_x;
+    const int size = sizeof(square_check) / sizeof(square_check[0]);
     int tentative_g_score = 0;
 
     // Only checking position list as both score and position should be synced
-    while (m_open_position_list.size() > 0 && m_open_score_list.size() > 0)
+    while (!m_open_position_list.empty() && !m_open_score_list.empty())
     {
         // Get the lowest m_open_list (which is the topmost)
         active_entry = m_open_score_list.begin()->second;
@@ -367,7 +345,7 @@ bool AStar::buildPath(const Entry* parentEntry)
 
     // Once the path is done, make a copy of it so the ownership
     // can be handed over.
-    int size = static_cast<int>(m_path_result.size());
+    const size_t size = static_cast<int>(m_path_result.size());
     m_path_copy = new (std::nothrow) int[size + 1];
 
     if (!m_path_copy)
@@ -375,9 +353,9 @@ bool AStar::buildPath(const Entry* parentEntry)
         return false;
     }
 
-    m_path_copy[0] = size;
+    m_path_copy[0] = static_cast<int>(size);
 
-    for (int i = 1; i < size; i++)
+    for (size_t i = 1; i < size; i++)
     {
         m_path_copy[i] = m_path_result[i - 1];
     }
