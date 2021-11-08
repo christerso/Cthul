@@ -1,5 +1,6 @@
 #pragma once
 #include "movable.h"
+#include "drawable.h"
 #include "position.h"
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -18,7 +19,6 @@ public:
     ~Character();
     const CharacterID& get_id();
     void move(Origin origin) override;
-    void draw(SDL_Renderer* renderer) override;
 protected:
     CharacterID character_id_;
     std::string name_;

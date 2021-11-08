@@ -10,8 +10,7 @@
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
-#include <memory>
-#include "resourcemanager.h"
+
 #include "input.h"
 
 namespace king
@@ -20,12 +19,7 @@ namespace king
 class Kings
 {
 public:
-    enum MOUSE_BUTTONS
-    {
-        LEFT = 0,
-        MIDDLE = 1,
-        RIGHT = 2
-    };
+
 
     Kings();
     ~Kings();
@@ -33,20 +27,10 @@ public:
     void start();
     void initialize_sdl2();
     void shutdown_sdl2();
-    void create_window();
-    void start_input_loop();
-    void setup_kingdom();
     Kingdom& get_kingdom();
 
 private:
     Kingdom kingdom_;
-    SDL_Renderer* renderer_ = nullptr;
-    SDL_Window* window_ = nullptr;
-    SDL_Surface* screen_surface_ = nullptr;
-    Input input_;
-    ResourceManager resources_;
-    std::vector<bool> mouse_button_states_;
-
 };
 
 } // namespace king

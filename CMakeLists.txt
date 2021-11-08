@@ -26,7 +26,7 @@ endif()
 
 make_directory (${CMAKE_BINARY_DIR}/logging)
 
-add_executable (kings "kings.cpp" "kings.h" "resourcemanager.h" "resourcemanager.cpp" "astar.cpp" "astar.h" "player.cpp" "player.h" "common.h" "kingdom.h" "kingdom.cpp"  "movable.h" "army.h" "army.cpp" "character.h" "character.cpp" "castle.h" "castle.cpp" "position.h"   "input.cpp")
+add_executable (kings "kings.cpp" "kings.h" "resourcemanager.h" "resourcemanager.cpp" "astar.cpp" "astar.h" "player.cpp" "player.h" "common.h" "kingdom.h" "kingdom.cpp"  "movable.h" "army.h" "army.cpp" "character.h" "character.cpp" "castle.h" "castle.cpp" "position.h"   "input.cpp" "drawable.h" "render.h" "render.cpp")
 add_custom_target(copy-runtime-files ALL COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/resources ${CMAKE_BINARY_DIR}/resources)
 
 set(CMAKE_MAKE_PROGRAM ninja)

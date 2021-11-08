@@ -3,6 +3,7 @@
 #include "position.h"
 
 #include <SDL_render.h>
+#include <SDL_rect.h>
 
 namespace king
 {
@@ -29,11 +30,14 @@ enum class Action
 class MovableEntity
 {
 public:
-
+    MovableEntity() = default;
+    MovableEntity(const MovableEntity& me) = default;
     virtual void move(Origin origin) = 0;
-    virtual void draw(SDL_Renderer* renderer) = 0;
 
-    void set_position(Position& pos) { position_ = pos; };
+    void set_position(Position& pos)
+    {
+        position_ = pos;
+    };
     Position& get_position() { return position_; }
 
 protected:

@@ -4,15 +4,14 @@ namespace king
 {
 enum class Level
 {
-    GROUND = 0,
-    UNDERGROUND,
-    AIR,
-    WATER
+    kGround = 0,
+    kUnderground,
+    kAir,
+    kWater
 };
 
-class Position
+struct Position
 {
-public:
     float pos_x{};
     float pos_y{};
 };

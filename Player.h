@@ -10,11 +10,11 @@ public:
     Player();
     virtual ~Player();
     void create_inital_setup();
-    Castle* get_castle() const;
-    void set_castle(Castle* castle);
+    const CastleID& get_castle() const;
+    void set_castle(CastleID& castle);
 
 private:
-    Castle* castle_;
+    CastleID castle_;
 };
 
 } // namespace king

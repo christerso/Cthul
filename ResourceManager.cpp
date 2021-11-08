@@ -6,7 +6,6 @@
 #include "rapidcsv.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/functional.hpp>
 #include <boost/json/src.hpp>
 #include <boost/json/value.hpp>
 #include <fmt/format.h>
@@ -16,13 +15,17 @@
 
 using namespace king;
 
+ResourceManager::ResourceManager()
+{
+}
+
 void ResourceManager::setup_initial_resources()
 {
-    load_image("map", "resources/images/kings.jpg", false, false);
-    load_image("human-axe-rider", "resources/images/human-axe-rider.png", true, true);
-    load_image("human_shieldman-rider", "resources/images/human-shieldman-rider.png", true, true);
-    load_image("human-spearman-rider", "resources/images/human-spearman-rider.png", true, true);
-    load_image("human-swordman", "resources/images/human-swordman.png", true, true);
+    load_image("map", "resources/images/kings.jpg");
+    load_image("human-axe-rider", "resources/images/human-axe-rider.png");
+    load_image("human_shieldman-rider", "resources/images/human-shieldman-rider.png");
+    load_image("human-spearman-rider", "resources/images/human-spearman-rider.png");
+    load_image("human-swordman", "resources/images/human-swordman.png");
     load_astar_data("resources/data/kingdom_astar.csv");
 }
 
@@ -36,8 +39,7 @@ MapData& ResourceManager::get_astar_data()
     return astar_data_;
 }
 
-const Sprite& ResourceManager::load_image(const std::string& name, const std::string& filename, bool entity,
-                                          bool is_grayscale)
+const Sprite& ResourceManager::load_image(const std::string& name, const std::string& filename)
 {
     SDL_Surface* image = IMG_Load(filename.c_str());
     if (image == nullptr)
@@ -56,35 +58,24 @@ const Sprite& ResourceManager::load_image(const std::string& name, const std::st
     }
     SDL_FreeSurface(image);
 
-    std::unique_ptr<Sprite> sprite(new Sprite);
+    auto sprite = std::make_unique<Sprite>();
     SDL_QueryTexture(texture, sprite->format, sprite->access, &sprite->source_rect.w, &sprite->source_rect.h);
     sprite->texture = texture;
-    if (entity)
-    {
-        entity_store_[name] = std::move(sprite);
-    }
-    else
-    {
-        image_store_[name] = std::move(sprite);
-    }
+
+    image_store_[name] = std::move(sprite);
     LOG(INFO) << fmt::format("loaded image: {} from {}", name, filename);
 
     return *image_store_[name];
 }
 
 
-Sprite* ResourceManager::get_sprite(const std::string& name)
+Sprite* ResourceManager::get_image(const std::string& name)
 {
     if (image_store_.find(name) == image_store_.end())
     {
         throw std::runtime_error("image was not found");
     }
     return image_store_[name].get();
-}
-
-EntityStore* ResourceManager::get_entities()
-{
-    return &entity_store_;
 }
 
 void ResourceManager::load_astar_data(const std::string& filename)
@@ -100,7 +91,7 @@ void ResourceManager::load_astar_data(const std::string& filename)
     }
 }
 
-void ResourceManager::load_json(const std::string& name, const std::string& filename)
+void ResourceManager::load_json(const std::string& name, const std::string& filename) const
 {
     if (std::ifstream file(filename, std::fstream::in); file.is_open())
     {

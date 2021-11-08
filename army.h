@@ -21,7 +21,7 @@ enum class ArmyType
 
 using Amount = int;
 
-class Army : public MovableEntity
+class Army : public MovableEntity, Drawable
 {
 public:
     Army(Character& owner, Position& pos, Sprite* sprite, int army_size);
@@ -29,7 +29,7 @@ public:
    
 
     void move(Origin origin) override;
-    void draw(SDL_Renderer* renderer) override;
+    void draw(SDL_Rect& position, SDL_Renderer* renderer) override;
     const ArmyID& get_id() const;
 private:
     void update_map_symbol();

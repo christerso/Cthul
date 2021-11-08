@@ -1,6 +1,6 @@
 #include "kingdom.h"
+#include "common.h"
 #include "player.h"
-
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
@@ -8,20 +8,33 @@ using namespace king;
 
 Kingdom::Kingdom()
     : kingdom_id_(boost::uuids::to_string(boost::uuids::random_generator()()))
+    , render_(this, &resource_manager_)
 {
 }
 
 Kingdom::~Kingdom()
 {
+    LOG(INFO) << "Kingdom destructor called";
+}
+
+void Kingdom::run()
+{
+    setup_kingdom();
+    while(input_.input_loop())
+    {
+        render_.draw_world();
+    }
+    // stop threads
+    g_running = false;
     stop_threads();
 }
 
 std::vector<Castle*> Kingdom::get_castles() const
 {
     std::vector<Castle*> castles;
-    for (auto const& [key, val] : castles_)
+    for (auto& val : castles)
     {
-        castles.push_back(val.get());
+        castles.push_back(val);
     }
     return castles;
 }
@@ -33,7 +46,9 @@ std::map<ArmyID, std::unique_ptr<Army>>& Kingdom::get_armies()
 
 void Kingdom::setup_kingdom()
 {
-    resource_manager_ = std::make_unique<ResourceManager>(ResourceManager());
+    set_astar_data(resource_manager_.get_astar_data());
+    start_threads();
+    input_.setup_world_data(render_.get_world_size().w, render_.get_world_size().h);
     // setup layers
     // launch movement, ai and event threads
     // Calculate any randoms and give armies initial positions in the map
@@ -47,42 +62,43 @@ void Kingdom::setup_kingdom()
     auto castle2 = std::make_unique<Castle>(Castle(castle2_pos));
     auto castle3 = std::make_unique<Castle>(Castle(castle3_pos));
     auto castle4 = std::make_unique<Castle>(Castle(castle4_pos));
+    std::vector<CastleID> ids;
+    ids.push_back(castle1->get_id());
+    ids.push_back(castle2->get_id());
+    ids.push_back(castle3->get_id());
+    ids.push_back(castle4->get_id());
     castles_[castle1->get_id()] = std::move(castle1);
     castles_[castle2->get_id()] = std::move(castle2);
     castles_[castle3->get_id()] = std::move(castle3);
     castles_[castle4->get_id()] = std::move(castle4);
 
-    // assign castle to player
-    std::vector<Castle*> castles = get_castles();
-    for (auto const& castle : castles)
-    {
-        if (castle->get_owner().empty())
-        {
-            player_.set_castle(castle);
-            castle->set_owner(player_.get_id());
-            player_.set_position(castle->get_position());
-            break;
-        }
-    }
+    // randomize a start castle
+    const auto rnd = common::get_random_value_within_range(0, 3);
+    player_.set_castle(ids[rnd]);
+    castles_[ids[rnd]]->set_owner(player_.get_id());
+    player_.set_position(castles_[ids[rnd]]->get_position());
+
     // assign army to player and start it at the same position
-    auto army = std::make_unique<Army>(Army(player_, player_.get_position(), resource_manager_->get_sprite("human-swordman"), 100));
+    LOG(INFO) << "X: " << player_.get_position().pos_x << " Y: " << player_.get_position().pos_y;
+    auto army = std::make_unique<Army>(
+        Army(player_, player_.get_position(), resource_manager_.get_image("human-swordman"), 100));
     auto id = army->get_id();
     armies_[id] = std::move(army);
 }
 
 void Kingdom::start_threads()
 {
-    bool run = true;
-    post(pool_, [this]() { this->movement(); });
-    post(pool_, [this]() { this->ai(); });
-    post(pool_, [this]() { this->weather(); });
-    post(pool_, [this]() { this->event(); });
+    g_running = true;
+    post(pool, [this]() { this->movement(); });
+    post(pool, [this]() { this->ai(); });
+    post(pool, [this]() { this->weather(); });
+    post(pool, [this]() { this->event(); });
 }
 
 void Kingdom::stop_threads()
 {
     LOG(INFO) << "stopping threads...";
-    pool_.join();
+    pool.join();
 }
 
 void Kingdom::set_astar_data(std::vector<int>& data)
@@ -96,19 +112,17 @@ void Kingdom::spawn_new_army()
     // The castle id should be part of player in the future.
 }
 
-void Kingdom::draw_sprites(SDL_Renderer* renderer)
+Input& Kingdom::get_input()
 {
-    SDL_FRect destination {};
-    LOG(INFO) << "Armies: " << armies_.size();
-    for (auto const& [key, val] :armies_)
-    {
-        val->draw(renderer);
-    }
+    return input_;
 }
 
-void Kingdom::set_input_handler(Input* input)
+void Kingdom::draw_sprites(SDL_Rect& position, SDL_Renderer* renderer)
 {
-    input_ = input;
+    for (auto const& val : armies_)
+    {
+        val.second.get()->draw(position, renderer);
+    }
 }
 
 const KingdomID& Kingdom::get_id() const
@@ -119,7 +133,7 @@ const KingdomID& Kingdom::get_id() const
 void Kingdom::movement()
 {
     LOG(INFO) << "staring movement thread..";
-    while (true)
+    while (g_running)
     {
         LOG(INFO) << "movement thread running executing...";
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -145,7 +159,7 @@ void Kingdom::movement()
 void Kingdom::ai()
 {
     LOG(INFO) << "starting ai thread...";
-    while (true)
+    while (g_running)
     {
         LOG(INFO) << "ai thread executing...";
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -155,7 +169,7 @@ void Kingdom::ai()
 void Kingdom::weather()
 {
     LOG(INFO) << "starting weather thread...";
-    while (true)
+    while (g_running)
     {
         LOG(INFO) << "weather thread executing...";
         std::this_thread::sleep_for(std::chrono::milliseconds(2500));
@@ -165,7 +179,7 @@ void Kingdom::weather()
 void Kingdom::event()
 {
     LOG(INFO) << "starting event thread...";
-    while (true)
+    while (g_running)
     {
         LOG(INFO) << "event thread executing...";
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -175,7 +189,7 @@ void Kingdom::event()
 void Kingdom::process()
 {
     LOG(INFO) << "starting process thread...";
-    while (true)
+    while (g_running)
     {
         LOG(INFO) << "process thread executing...";
         std::this_thread::sleep_for(std::chrono::milliseconds(100));

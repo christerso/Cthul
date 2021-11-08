@@ -1,5 +1,6 @@
 #include "castle.h"
 #include <boost/uuid/uuid_io.hpp>
+#include <glog/logging.h>
 
 using namespace king;
 
@@ -11,6 +12,7 @@ Castle::Castle(Position& pos)
 
 Castle::~Castle()
 {
+    LOG(INFO) << "Castle destructor called";
 }
 
 Position& Castle::get_position()
@@ -18,17 +20,17 @@ Position& Castle::get_position()
     return position_;
 }
 
-const CastleID& Castle::get_id()
+const CastleID& Castle::get_id() const
 {
     return castle_id_;
 }
 
-const Owner Castle::get_owner() const
+Owner Castle::get_owner() const
 {
     return owner_;
 }
 
-void Castle::set_owner(const CharacterID owner)
+void Castle::set_owner(const CharacterID& owner)
 {
     owner_ = owner;
 }

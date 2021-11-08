@@ -22,7 +22,7 @@ Player::~Player()
 
 void Player::create_inital_setup() {}
 
-Castle* Player::get_castle() const
+const CastleID& Player::get_castle() const
 {
     // Create the names of all the people around you, these will be:
     // Adjutant, Knight (horses), Commander (ground forces), Scout1 and scout2.
@@ -31,7 +31,7 @@ Castle* Player::get_castle() const
     return castle_;
 }
 
-void Player::set_castle(Castle* castle)
+void Player::set_castle(CastleID& castle)
 {
     castle_ = castle;
 }
