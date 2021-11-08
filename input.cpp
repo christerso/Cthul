@@ -31,7 +31,7 @@ void Input::setup_world_data(int width, int height)
     world_height_ = height;
     position_.w = width;
     position_.h = height;
-    camera_ = {0, 0, width / 4, height / 4};
+    camera_ = {0, 0, width / 3, height / 3};
 }
 
 bool Input::input_loop()
@@ -127,13 +127,13 @@ bool Input::input_loop()
             {
                 // move right
 
-                if (position_.x < camera_.w)
+                if (position_.x < world_width_ - camera_.w * 1.5)
                 {
                     position_.x += scroll_speed_;
                 }
-                if (position_.x > camera_.w)
+                if (position_.x > world_width_ - camera_.w * 1.5)
                 {
-                    position_.x = camera_.w;
+                    position_.x = world_width_ - camera_.w * 1.5;
                 }
             }
             if (sdl_event_.key.keysym.sym == SDLK_s || sdl_event_.key.keysym.sym == SDLK_DOWN)

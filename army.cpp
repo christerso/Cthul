@@ -31,14 +31,10 @@ void Army::move(Origin origin)
 
 void Army::draw(SDL_Rect& position, SDL_Renderer* renderer)
 {
-    SDL_Point center{sprite_->source_rect.w / 2, sprite_->source_rect.h / 2};
-    Position p = get_position();
-    SDL_Rect pos {p.pos_x, p.pos_y, sprite_->source_rect.w / 6, sprite_->source_rect.h / 4};
-    pos.x = pos.x - pos.w / 2;
-    pos.y = pos.y - pos.h;
-    SDL_RenderCopyEx(renderer, sprite_->texture, &sprite_->source_rect, &pos, 0, &center, SDL_FLIP_NONE);
-    //Position p {pos.pos_x - position.x, pos.pos_y - position.y};
-    //set_position();
+    auto [x, y] = get_position();
+    SDL_Rect origin{x, y, sprite_->source_rect.w, sprite_->source_rect.h};
+    scale_object(center_, origin, pos_, current_scale_);
+    SDL_RenderCopyEx(renderer, sprite_->texture, &sprite_->source_rect, &pos_, 0, &center_, SDL_FLIP_NONE);
 }
 
 const ArmyID& Army::get_id() const

@@ -67,7 +67,7 @@ void Render::setup()
         return;
     }
     position_ = {0, 0, map_width_, map_height_};
-    camera_ = {0, 0, map_width_ / 4, map_height_ / 4};
+    camera_ = {0, 0, map_width_ / 2, map_height_ / 2};
 
 }
 
@@ -89,7 +89,7 @@ void Render::draw_world()
     delta_ = current_time_ - previous_time_;
     updated_delta_ += delta_;
     delay_time_ = static_cast<int>(1000.0f / fps_);
-    draw_area_ = {position_.x, position_.y, position_.w - camera_.w, position_.h - camera_.h};
+    draw_area_ = {position_.x - camera_.x, position_.y - camera_.y, position_.w - camera_.w, position_.h - camera_.h};
     SDL_SetRenderTarget(renderer_, texture_buffer_);
     SDL_RenderClear(renderer_);
     SDL_RenderCopy(renderer_, map_texture_->texture, nullptr, nullptr);

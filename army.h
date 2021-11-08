@@ -34,11 +34,14 @@ public:
 private:
     void update_map_symbol();
     void populate();
-    Owner owner_; // id of owner, get_id() from army and character
+    Owner owner_ {}; // id of owner, get_id() from army and character
     Origin origin_ = Origin::AI;
-    ArmyID army_id_;
-    Sprite* sprite_;
+    ArmyID army_id_ {};
+    Sprite* sprite_ = nullptr;
     std::vector<Position> waypoints_;
-    int army_size_;
+    int army_size_ {};
+    SDL_Point center_ {};
+    SDL_Rect pos_ {};
+    int current_scale_ = 4;
 };
 } // namespace king
