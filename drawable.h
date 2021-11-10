@@ -6,7 +6,7 @@ namespace king
 class Drawable
 {
 public:
-    virtual void draw(SDL_Rect& position, SDL_Renderer* renderer) = 0;
+    virtual void draw(SDL_Renderer* renderer) = 0;
 
     static void scale_object(SDL_Point& center, const SDL_Rect& origin, SDL_Rect& new_position, const int scale)
     {

@@ -29,8 +29,10 @@ public:
    
 
     void move(Origin origin) override;
-    void draw(SDL_Rect& position, SDL_Renderer* renderer) override;
+    void draw(SDL_Renderer* renderer) override;
     const ArmyID& get_id() const;
+    Sprite& get_sprite();
+    SDL_Rect& get_sprite_rect();
 private:
     void update_map_symbol();
     void populate();

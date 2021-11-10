@@ -29,10 +29,10 @@ void Army::move(Origin origin)
 
 }
 
-void Army::draw(SDL_Rect& position, SDL_Renderer* renderer)
+void Army::draw(SDL_Renderer* renderer)
 {
-    auto [x, y] = get_position();
-    SDL_Rect origin{x, y, sprite_->source_rect.w, sprite_->source_rect.h};
+    auto &[x, y] = get_position();
+    SDL_Rect origin{static_cast<int>(x), static_cast<int>(y), sprite_->source_rect.w, sprite_->source_rect.h};
     scale_object(center_, origin, pos_, current_scale_);
     SDL_RenderCopyEx(renderer, sprite_->texture, &sprite_->source_rect, &pos_, 0, &center_, SDL_FLIP_NONE);
 }
@@ -40,6 +40,16 @@ void Army::draw(SDL_Rect& position, SDL_Renderer* renderer)
 const ArmyID& Army::get_id() const
 {
     return army_id_;
+}
+
+Sprite& Army::get_sprite()
+{
+    return *sprite_;
+}
+
+SDL_Rect& Army::get_sprite_rect()
+{
+    return pos_;
 }
 
 void Army::populate()

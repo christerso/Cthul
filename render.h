@@ -17,24 +17,20 @@ public:
 
     void setup();
     SDL_Rect& get_camera();
-    SDL_Rect& get_world_size();
     bool create_window();
     void draw_world();
 
 private:
+    float scale_ {1.0f};
     Uint32 previous_time_{};
     Uint32 current_time_{};
     Uint32 delta_{};
-    int delta_x_{};
-    int delta_y_{};
     Uint32 updated_delta_{};
     int fps_{144};
     Uint32 delay_time_{};
     int map_width_{};
     int map_height_{};
     SDL_Rect camera_{0, 0, 0, 0};
-    SDL_Rect draw_area_ {};
-    SDL_Rect position_ = {};
     SDL_Renderer* renderer_ = nullptr;
     SDL_Window* window_ = nullptr;
     Sprite* map_texture_;

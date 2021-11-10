@@ -4,25 +4,27 @@
 cmake_minimum_required (VERSION 3.8)
 project(kings)
 set(CMAKE_ARGS "-Wno-dev")
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 if(MSVC)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
+    set(VCPKG_INSTALLS ${Z_VCPKG_ROOT_DIR}/installed/x64-windows)
+    set (GLOG_ENTRY "glog::glog")
+    set (BCRYPT_LIBRARY "bcrypt")
+    set (PNG_LIBRARY "png")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++20")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_WIN32_WINNT=0x0A00 -D_WINVER=0x0A00 -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DPOCO_NO_AUTOMATIC_LIBS=1 -D_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING=1")
+else(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBoost_NO_WARN_NEW_VERSIONS=1 -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DPOCO_NO_AUTOMATIC_LIBS=1 -D_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING=1")
+    find_package(Threads REQUIRED)
+    set (GLOG_ENTRY "glog")
+    set (PNG_LIBRARY "png_static")
+    set (BCRYPT_LIBRARY "")
 endif(MSVC)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_WIN32_WINNT=0x0A00 -D_WINVER=0x0A00 -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DPOCO_NO_AUTOMATIC_LIBS=1 -D_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING=1")
 
 #-DGLOG_NO_ABBREVIATED_SEVERITIES=1
 add_custom_target(copy-resources ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/resources" "${CMAKE_BINARY_DIR}/resources")
-
-if (MSVC)
-    set(VCPKG_INSTALLS ${Z_VCPKG_ROOT_DIR}/installed/x64-windows)
-    set (GLOG_ENTRY "glog::glog")
-else()
-    find_package(Threads REQUIRED)
-    set (GLOG_ENTRY "glog")
-endif()
 
 make_directory (${CMAKE_BINARY_DIR}/logging)
 
@@ -42,7 +44,6 @@ find_package(glog CONFIG REQUIRED)
 find_package(libpng CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(Flatbuffers CONFIG REQUIRED)
-find_package(Poco CONFIG REQUIRED COMPONENTS Zip Util)
 find_package(GTest REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(SDL2 CONFIG REQUIRED)
@@ -50,9 +51,10 @@ find_package(sdl2-image CONFIG REQUIRED)
 find_package(sdl2-gfx CONFIG REQUIRED)
 find_package(sdl2-ttf CONFIG REQUIRED)
 find_package(sdl2-net CONFIG REQUIRED)
+find_package(vectorclass CONFIG REQUIRED)
 find_path(BSHOSHANY_THREAD_POOL_INCLUDE_DIRS "thread_pool.hpp")
 find_path(RAPIDCSV_INCLUDE_DIRS "rapidcsv.h")
-include_directories(${GTEST_INCLUDE_DIR})
+
 enable_testing()
 
 add_subdirectory(tests)
@@ -71,16 +73,15 @@ target_link_libraries(kings PRIVATE
                       SDL2::SDL2_gfx
                       SDL2::SDL2 SDL2::SDL2main
                       nlohmann_json nlohmann_json::nlohmann_json
-                      png
-                      Poco::Zip
+                      ${PNG_LIBRARY}
+                      ${BCRYPT_LIBRARY}
+                      vectorclass::vectorclass
                       ${LIBNOISE_LIBRARIES}
                       ${Boost_LIBRARIES}
                       ${GLOG_ENTRY}
                       ZLIB::ZLIB
-                      bcrypt
                       flatbuffers::flatbuffers
                       fmt::fmt
                       fmt::fmt-header-only
-                      Boost::boost
                       glog::glog
                       )

@@ -3,7 +3,7 @@
 
 #include <SDL2/SDL.h>
 #include <SDL_image.h>
-
+#include <memory>
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -31,15 +31,7 @@ class ResourceManager
 {
 public:
     ResourceManager();
-    ResourceManager(const ResourceManager& r)
-    {
-        LOG(INFO) << "Copy constructor called";
-    }
 
-    ResourceManager& operator=(const ResourceManager&& r)
-    {
-        LOG(INFO) << "Move assignment";
-    };
     // setup initial resources
     // this means load level, load everything belonging to the level etc
     void setup_initial_resources();

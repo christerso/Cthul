@@ -5,9 +5,9 @@
 
 namespace common
 {
-static const int seed_val = 19680821;
+static constexpr int kSeedVal = 19680821;
 static std::mt19937 m_generator;
-const double pi = 3.14159265358979323846;
+constexpr double kPi = 3.14159265358979323846;
 
 inline void clear_bit(int& target, const int bit)
 {
@@ -31,19 +31,19 @@ inline bool check_bit(int& target, const int bit)
 
 inline int get_random_value_within_range(const int start, const int end)
 {
-    const std::uniform_int_distribution<int> uniform_dist(start, end);
+    std::uniform_int_distribution<int> uniform_dist(start, end);
     return uniform_dist(m_generator);
 }
 
 inline float get_random_value_within_range(const float start, const float end)
 {
-    const std::uniform_real_distribution<float> uniform_dist(start, end);
+    std::uniform_real_distribution<float> uniform_dist(start, end);
     return uniform_dist(m_generator);
 }
 
 inline double get_random_value_within_range(const double start, const double end)
 {
-    const std::uniform_real_distribution<double> uniform_dist(start, end);
+    std::uniform_real_distribution<double> uniform_dist(start, end);
     return uniform_dist(m_generator);
 }
 
@@ -53,7 +53,7 @@ T normalize(const T value, const T min, const T max)
     return (value - min) / (max - min);
 }
 
-inline float lerp(float value, float start, float end)
+inline float lerp(const float value, const float start, const float end)
 {
     return start + (end - start) * value;
 }

@@ -66,9 +66,8 @@ void Render::setup()
         LOG(ERROR) << fmt::format("renderer target could not be created! SDL Error: {}", SDL_GetError());
         return;
     }
-    position_ = {0, 0, map_width_, map_height_};
     camera_ = {0, 0, map_width_ / 2, map_height_ / 2};
-
+    input_->set_camera(camera_);
 }
 
 SDL_Rect& Render::get_camera()
@@ -76,26 +75,22 @@ SDL_Rect& Render::get_camera()
     return camera_;
 }
 
-SDL_Rect& Render::get_world_size()
-{
-    return position_;
-}
-
 void Render::draw_world()
 {
-    position_ = input_->get_position();
+    camera_ = input_->get_camera();
+    scale_ = input_->get_scale();
     previous_time_ = current_time_;
     current_time_ = SDL_GetTicks();
     delta_ = current_time_ - previous_time_;
     updated_delta_ += delta_;
     delay_time_ = static_cast<int>(1000.0f / fps_);
-    draw_area_ = {position_.x - camera_.x, position_.y - camera_.y, position_.w - camera_.w, position_.h - camera_.h};
+
     SDL_SetRenderTarget(renderer_, texture_buffer_);
     SDL_RenderClear(renderer_);
     SDL_RenderCopy(renderer_, map_texture_->texture, nullptr, nullptr);
-    kingdom_->draw_sprites(position_, renderer_);
+    kingdom_->draw_sprites(renderer_);
     SDL_SetRenderTarget(renderer_, nullptr);
-    SDL_RenderCopy(renderer_, texture_buffer_, &draw_area_, nullptr);
+    SDL_RenderCopy(renderer_, texture_buffer_, &camera_, nullptr);
     SDL_SetRenderTarget(renderer_, nullptr);
     SDL_RenderPresent(renderer_); // swap in the final image
 

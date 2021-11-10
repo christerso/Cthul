@@ -20,7 +20,7 @@ Kingdom::~Kingdom()
 void Kingdom::run()
 {
     setup_kingdom();
-    while(input_.input_loop())
+    while (input_.input_loop())
     {
         render_.draw_world();
     }
@@ -48,7 +48,8 @@ void Kingdom::setup_kingdom()
 {
     set_astar_data(resource_manager_.get_astar_data());
     start_threads();
-    input_.setup_world_data(render_.get_world_size().w, render_.get_world_size().h);
+    Sprite* world = resource_manager_.get_image("map");
+    input_.setup_world_data(world->source_rect.w, world->source_rect.h);
     // setup layers
     // launch movement, ai and event threads
     // Calculate any randoms and give armies initial positions in the map
@@ -93,6 +94,7 @@ void Kingdom::start_threads()
     post(pool, [this]() { this->ai(); });
     post(pool, [this]() { this->weather(); });
     post(pool, [this]() { this->event(); });
+    post(pool, [this]() { this->process(); });
 }
 
 void Kingdom::stop_threads()
@@ -117,11 +119,11 @@ Input& Kingdom::get_input()
     return input_;
 }
 
-void Kingdom::draw_sprites(SDL_Rect& position, SDL_Renderer* renderer)
+void Kingdom::draw_sprites(SDL_Renderer* renderer)
 {
     for (auto const& val : armies_)
     {
-        val.second.get()->draw(position, renderer);
+        val.second.get()->draw(renderer);
     }
 }
 
@@ -191,11 +193,28 @@ void Kingdom::process()
     LOG(INFO) << "starting process thread...";
     while (g_running)
     {
-        LOG(INFO) << "process thread executing...";
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
         // process mouse selections
-        for (auto const& [id, army] : armies_)
+        if (input_.get_left_mouse_button_state())
         {
+            for (auto const& [id, army] : armies_)
+            {
+                auto mouse_coords = input_.left_mouse_button_entry();
+                if (coords_within_square(mouse_coords.x_pos, mouse_coords.y_pos, army.get()->get_sprite_rect()))
+                {
+                    int i = 0;
+                }
+            }
         }
     }
+}
+
+bool Kingdom::coords_within_square(int x, int y, SDL_Rect& rect)
+{
+    if (x >= rect.x && x<= rect.x + rect.w)
+        if (y >= rect.y && y <= rect.y + rect.h)
+        {
+            return true;
+        }
+    return false;
 }

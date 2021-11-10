@@ -36,9 +36,10 @@ public:
     void weather();
     void event();
     void process();
+    bool coords_within_square(int x, int y, SDL_Rect& rect);
     void spawn_new_army();
     Input& get_input();
-    void draw_sprites(SDL_Rect& position, SDL_Renderer * renderer);
+    void draw_sprites(SDL_Renderer* renderer);
     const KingdomID& get_id() const;
     std::vector<Castle*> get_castles() const;
     std::map<ArmyID, std::unique_ptr<Army>>& get_armies();
