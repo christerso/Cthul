@@ -45,6 +45,7 @@ public:
 
     std::mutex input_mtx;
     std::vector<bool> mouse_button_states_;
+    SDL_Rect highlight_square_;
 private:
     bool left_ctrl_down_ = false;
     bool left_alt_down_ = false;
@@ -61,6 +62,8 @@ private:
     int world_height_ {};
     SDL_Rect camera_ {};
     SDL_Event sdl_event_{};
+
+
 };
 
 }; // namespace king

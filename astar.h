@@ -6,6 +6,7 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <vector>
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -156,10 +157,14 @@ public:
      * @param ignore_blocked Ignore blocked flag, this could be used
      * for fastest path, like for flying creatures.
      *
-     * @return int pointer to an array of coords.
-     *         the first value is the length of the array.
      */
-    bool astar(int from_x, int from_y, int to_x, int to_y, bool ignore_blocked, const int** path);
+    bool astar(int from_x, int from_y, int to_x, int to_y, bool ignore_blocked);
+
+    /**
+     * Return result
+     */
+    [[nodiscard]] const std::vector<int>& get_final_path() const;
+
     /**
      * @brief enableDebugDump
      * @param enable Enables output of ascii map for debug purposes
@@ -216,6 +221,7 @@ private:
     PositionList m_closed_position_list;
     std::deque<Position> m_path_result;
     std::map<LayerID, int*> m_layers;
+    std::vector<int> final_path_;
 };
 
 } // namespace star

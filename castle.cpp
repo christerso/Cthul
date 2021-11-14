@@ -15,7 +15,7 @@ Castle::~Castle()
     LOG(INFO) << "Castle destructor called";
 }
 
-Position& Castle::get_position()
+const Position& Castle::get_position() const
 {
     return position_;
 }

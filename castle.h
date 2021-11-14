@@ -17,7 +17,7 @@ class Castle
 public:
     explicit Castle(Position& pos);
     virtual ~Castle();
-    Position& get_position();
+    const Position& get_position() const;
     const CastleID& get_id() const;
     Owner get_owner() const;
     void set_owner(const CharacterID& owner);

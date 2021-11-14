@@ -7,9 +7,12 @@
 
 #include <iostream>
 #include <random>
-
+#include <vector>
+#include <algorithm>
+#include <functional>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+#include <fmt/format.h>
 
 #include "input.h"
 
@@ -19,8 +22,6 @@ namespace king
 class Kings
 {
 public:
-
-
     Kings();
     ~Kings();
 

@@ -23,7 +23,7 @@ endif(MSVC)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 #-DGLOG_NO_ABBREVIATED_SEVERITIES=1
-add_custom_target(copy-resources ALL
+add_custom_target(TARGET kings POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/resources" "${CMAKE_BINARY_DIR}/resources")
 
 make_directory (${CMAKE_BINARY_DIR}/logging)

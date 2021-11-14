@@ -16,10 +16,13 @@ public:
     ~Render();
 
     void setup();
+    SDL_Window& get_window() const;
     SDL_Rect& get_camera();
     bool create_window();
+    void draw_debug_astar() const;
+    void draw_weights() const;
     void draw_world();
-
+    
 private:
     float scale_ {1.0f};
     Uint32 previous_time_{};

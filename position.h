@@ -12,8 +12,8 @@ enum class Level
 
 struct Position
 {
-    float pos_x{};
-    float pos_y{};
+    int x{};
+    int y{};
 };
 
 } // namespace king

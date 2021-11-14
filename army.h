@@ -20,7 +20,8 @@ enum class ArmyType
 };
 
 using Amount = int;
-
+// TODO: add original destination so the army can resume it?
+using MovementPath = std::vector<int>;
 class Army : public MovableEntity, Drawable
 {
 public:
@@ -33,6 +34,9 @@ public:
     const ArmyID& get_id() const;
     Sprite& get_sprite();
     SDL_Rect& get_sprite_rect();
+    float scale();
+    void set_movement_path(MovementPath& path);
+    MovementPath& get_movement_path();
 private:
     void update_map_symbol();
     void populate();
@@ -44,6 +48,7 @@ private:
     int army_size_ {};
     SDL_Point center_ {};
     SDL_Rect pos_ {};
-    int current_scale_ = 4;
+    float current_scale_ = .4f;
+    MovementPath movement_path_;
 };
 } // namespace king

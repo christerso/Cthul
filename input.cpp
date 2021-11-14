@@ -81,13 +81,12 @@ bool Input::input_loop()
             std::scoped_lock lock{input_mtx};
             SDL_GetMouseState(&scroll_wheel_mouse_position_.x_pos, &scroll_wheel_mouse_position_.y_pos);
 
-            //if (sdl_event_.wheel.y > 0) // scroll up
-            //{
-            //    if (scale_ <= 3.f)
-            //    {
-            //        scale_ += 0.001f;
-            //    }
-            //}
+            if (sdl_event_.wheel.y > 0) // scroll up
+            {
+                if (scale_ <= 3.f)
+                {
+                }
+            }
             //else if (sdl_event_.wheel.y < 0) // scroll down
             //{
             //    if (scale_ >= 0.5f)

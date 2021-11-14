@@ -3,6 +3,7 @@
 #include "player.h"
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include "astar.h"
 
 using namespace king;
 
@@ -29,14 +30,9 @@ void Kingdom::run()
     stop_threads();
 }
 
-std::vector<Castle*> Kingdom::get_castles() const
+const Castle& Kingdom::get_castle(const CastleID& id) const
 {
-    std::vector<Castle*> castles;
-    for (auto& val : castles)
-    {
-        castles.push_back(val);
-    }
-    return castles;
+    return *castles_.at(id).get();
 }
 
 std::map<ArmyID, std::unique_ptr<Army>>& Kingdom::get_armies()
@@ -46,28 +42,33 @@ std::map<ArmyID, std::unique_ptr<Army>>& Kingdom::get_armies()
 
 void Kingdom::setup_kingdom()
 {
+    // TODO: break this out as a json that comes with the map
     set_astar_data(resource_manager_.get_astar_data());
     start_threads();
     Sprite* world = resource_manager_.get_image("map");
+    map_tile_size_x_ = 100;
+    map_tile_size_y_ = 100;
     input_.setup_world_data(world->source_rect.w, world->source_rect.h);
+    map_height_ = world->source_rect.h;
+    map_width_ = world->source_rect.w;
+    SDL_GetWindowSize(&render_.get_window(), &window_width_, &window_height_);
     // setup layers
     // launch movement, ai and event threads
     // Calculate any randoms and give armies initial positions in the map
     // Add Army to "movement" queue. Army needs to inherit "behaviour"
     // Setup castles (hardcoded for now)
-    Position castle1_pos{150, 305};
-    Position castle2_pos{1485, 695};
-    Position castle3_pos{213, 1263};
-    Position castle4_pos{1806, 1737};
+    Position castle1_pos{ 150, 305 };
+    Position castle2_pos{ 1485, 695 };
+    Position castle3_pos{ 213, 1263 };
+    Position castle4_pos{ 1806, 1737 };
     auto castle1 = std::make_unique<Castle>(Castle(castle1_pos));
     auto castle2 = std::make_unique<Castle>(Castle(castle2_pos));
     auto castle3 = std::make_unique<Castle>(Castle(castle3_pos));
     auto castle4 = std::make_unique<Castle>(Castle(castle4_pos));
-    std::vector<CastleID> ids;
-    ids.push_back(castle1->get_id());
-    ids.push_back(castle2->get_id());
-    ids.push_back(castle3->get_id());
-    ids.push_back(castle4->get_id());
+    ids_.push_back(castle1->get_id());
+    ids_.push_back(castle2->get_id());
+    ids_.push_back(castle3->get_id());
+    ids_.push_back(castle4->get_id());
     castles_[castle1->get_id()] = std::move(castle1);
     castles_[castle2->get_id()] = std::move(castle2);
     castles_[castle3->get_id()] = std::move(castle3);
@@ -75,12 +76,13 @@ void Kingdom::setup_kingdom()
 
     // randomize a start castle
     const auto rnd = common::get_random_value_within_range(0, 3);
-    player_.set_castle(ids[rnd]);
-    castles_[ids[rnd]]->set_owner(player_.get_id());
-    player_.set_position(castles_[ids[rnd]]->get_position());
+    player_.set_castle(ids_[rnd]);
+    castles_[ids_[rnd]]->set_owner(player_.get_id());
+    auto pos = castles_[ids_[rnd]]->get_position();
+    player_.set_position(pos);
 
     // assign army to player and start it at the same position
-    LOG(INFO) << "X: " << player_.get_position().pos_x << " Y: " << player_.get_position().pos_y;
+    LOG(INFO) << "X: " << player_.get_position().x << " Y: " << player_.get_position().y;
     auto army = std::make_unique<Army>(
         Army(player_, player_.get_position(), resource_manager_.get_image("human-swordman"), 100));
     auto id = army->get_id();
@@ -103,6 +105,16 @@ void Kingdom::stop_threads()
     pool.join();
 }
 
+const std::vector<int>& Kingdom::get_astar_result() const
+{
+    return astar_.get_final_path();
+}
+
+int Kingdom::get_tile_sizes()
+{
+    return map_tile_size_x_ / 100;
+}
+
 void Kingdom::set_astar_data(std::vector<int>& data)
 {
     astar_.bind(data.data(), 100, 100);
@@ -119,11 +131,11 @@ Input& Kingdom::get_input()
     return input_;
 }
 
-void Kingdom::draw_sprites(SDL_Renderer* renderer)
+void Kingdom::draw_sprites(SDL_Renderer* renderer) const
 {
     for (auto const& val : armies_)
     {
-        val.second.get()->draw(renderer);
+        val.second->draw(renderer);
     }
 }
 
@@ -147,7 +159,7 @@ void Kingdom::movement()
          * This would mean, plot the path with a* taking into accounts the weights of the map.
          * Figure out where the control points go.
          */
-        // Iterate through all the army structures and call the move method
+         // Iterate through all the army structures and call the move method
         for (auto const& [owner, army] : armies_)
         {
             // if army id is owned by player then move to destination set by player, not by ai
@@ -193,15 +205,33 @@ void Kingdom::process()
     LOG(INFO) << "starting process thread...";
     while (g_running)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
         // process mouse selections
         if (input_.get_left_mouse_button_state())
         {
             for (auto const& [id, army] : armies_)
             {
-                auto mouse_coords = input_.left_mouse_button_entry();
+                const auto mouse_coords = input_.left_mouse_button_entry();
                 if (coords_within_square(mouse_coords.x_pos, mouse_coords.y_pos, army.get()->get_sprite_rect()))
                 {
+                    // Draw a path with astar from one castle to another.
+                    //
+                    // Take the clicked army and move it to another castle
+                    // this means fill the astar with the world weight data
+                    // grab another castle (for now) and make astar trace a path to the castle
+                    // move the unit through the path to the other castle.
+                    // win
+                    //
+
+                    const auto rect = army.get()->get_sprite_rect();
+                    const auto [start_x, start_y] = get_square(Position{rect.x, rect.y});
+
+                    auto castle_id = get_castle_id(3);
+                    const Castle& dest = get_castle(castle_id);
+                    const auto pos = dest.get_position();
+                    const auto [dest_x, dest_y] = get_square(pos);
+                    MovementPath& path = army.get()->get_movement_path();
+                    path.resize(map_tile_size_x_ * map_tile_size_y_);
+                    astar_.astar(start_x, start_y, dest_x, dest_y, false);
                     int i = 0;
                 }
             }
@@ -209,12 +239,28 @@ void Kingdom::process()
     }
 }
 
-bool Kingdom::coords_within_square(int x, int y, SDL_Rect& rect)
+Position Kingdom::get_square(const Position& pos) const
 {
-    if (x >= rect.x && x<= rect.x + rect.w)
-        if (y >= rect.y && y <= rect.y + rect.h)
-        {
-            return true;
-        }
+    const auto tile_width = map_width_ / map_tile_size_x_;
+    const auto tile_height = map_height_ / map_tile_size_y_;
+    return Position{ pos.x / tile_width, pos.y / tile_height};
+}
+
+bool Kingdom::coords_within_square(int x, int y, const SDL_Rect& rect) const
+{
+    const float scale_x = input_.get_scale() * static_cast<float>(window_width_) / static_cast<float>(map_width_);
+    const float scale_y = input_.get_scale() * static_cast<float>(window_height_) / static_cast<float>(map_height_);
+    x = static_cast<int>(static_cast<float>(x) / scale_x);
+    y = static_cast<int>(static_cast<float>(y) / scale_y);
+
+    if ((x > rect.x) && (x < rect.x + rect.w) && (y > rect.y) && (y < rect.y + rect.h))
+    {
+        return true;
+    }
     return false;
+}
+
+CastleID& Kingdom::get_castle_id(const int position)
+{
+    return ids_[position];
 }

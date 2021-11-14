@@ -34,6 +34,7 @@ void Army::draw(SDL_Renderer* renderer)
     auto &[x, y] = get_position();
     SDL_Rect origin{static_cast<int>(x), static_cast<int>(y), sprite_->source_rect.w, sprite_->source_rect.h};
     scale_object(center_, origin, pos_, current_scale_);
+    //SDL_RenderDrawRect(renderer, &pos_);
     SDL_RenderCopyEx(renderer, sprite_->texture, &sprite_->source_rect, &pos_, 0, &center_, SDL_FLIP_NONE);
 }
 
@@ -50,6 +51,21 @@ Sprite& Army::get_sprite()
 SDL_Rect& Army::get_sprite_rect()
 {
     return pos_;
+}
+
+float king::Army::scale()
+{
+    return current_scale_;
+}
+
+void Army::set_movement_path(MovementPath& path)
+{
+    movement_path_ = std::move(path);
+}
+
+MovementPath& Army::get_movement_path()
+{
+    return movement_path_;
 }
 
 void Army::populate()

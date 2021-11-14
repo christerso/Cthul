@@ -22,6 +22,8 @@ namespace king
 {
 using KingdomID = std::string;
 using ThreadMethod = std::function<void()>;
+using CastleIDs = std::vector<CastleID>;
+
 static bool g_running;
 class Kingdom
 {
@@ -36,17 +38,21 @@ public:
     void weather();
     void event();
     void process();
-    bool coords_within_square(int x, int y, SDL_Rect& rect);
+    Position get_square(const Position& pos) const;
+    bool coords_within_square(int x, int y, const SDL_Rect& rect) const;
+    CastleID& get_castle_id(int position);
     void spawn_new_army();
     Input& get_input();
-    void draw_sprites(SDL_Renderer* renderer);
+    void draw_sprites(SDL_Renderer* renderer) const;
     const KingdomID& get_id() const;
-    std::vector<Castle*> get_castles() const;
+    const Castle& get_castle(const CastleID& id) const;
     std::map<ArmyID, std::unique_ptr<Army>>& get_armies();
     void start_threads();
     void stop_threads();
-
+    const std::vector<int>& get_astar_result() const;
+    int get_tile_sizes();
 private:
+    CastleIDs ids_;
     boost::asio::thread_pool pool;
     KingdomID kingdom_id_;
     star::AStar astar_;
@@ -58,5 +64,13 @@ private:
     std::map<CharacterID, std::unique_ptr<Character>> characters_;
     ResourceManager resource_manager_;
     Render render_;
+    int map_tile_size_x_ {};
+    int map_tile_size_y_ {};
+    int window_width_ {};
+    int window_height_ {};
+    int map_height_ {};
+    int map_width_ {};
+    
+
 };
 } // namespace king
