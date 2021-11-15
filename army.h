@@ -33,7 +33,8 @@ public:
     void draw(SDL_Renderer* renderer) override;
     const ArmyID& get_id() const;
     Sprite& get_sprite();
-    SDL_Rect& get_sprite_rect();
+    const SDL_Rect& get_sprite_rect() const;
+    void get_sprite_base_center(SDL_Point& center_position);
     float scale();
     void set_movement_path(MovementPath& path);
     MovementPath& get_movement_path();

@@ -32,7 +32,7 @@ void Army::move(Origin origin)
 void Army::draw(SDL_Renderer* renderer)
 {
     auto &[x, y] = get_position();
-    SDL_Rect origin{static_cast<int>(x), static_cast<int>(y), sprite_->source_rect.w, sprite_->source_rect.h};
+    SDL_Rect origin{x, y, sprite_->source_rect.w, sprite_->source_rect.h};
     scale_object(center_, origin, pos_, current_scale_);
     //SDL_RenderDrawRect(renderer, &pos_);
     SDL_RenderCopyEx(renderer, sprite_->texture, &sprite_->source_rect, &pos_, 0, &center_, SDL_FLIP_NONE);
@@ -48,9 +48,16 @@ Sprite& Army::get_sprite()
     return *sprite_;
 }
 
-SDL_Rect& Army::get_sprite_rect()
+const SDL_Rect& Army::get_sprite_rect() const
 {
     return pos_;
+}
+
+void Army::get_sprite_base_center(SDL_Point& center_position)
+{
+    auto &[x, y] = get_position();
+
+    center_position = {x, y};
 }
 
 float king::Army::scale()

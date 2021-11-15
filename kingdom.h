@@ -39,6 +39,7 @@ public:
     void event();
     void process();
     Position get_square(const Position& pos) const;
+    void mouse_to_screen_coords(int x, int y, Position& position) const;
     bool coords_within_square(int x, int y, const SDL_Rect& rect) const;
     CastleID& get_castle_id(int position);
     void spawn_new_army();

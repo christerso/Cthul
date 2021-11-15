@@ -51,7 +51,7 @@ MousePosition& Input::left_mouse_button_entry()
     return current_left_mouse_entry_;
 }
 
-MousePosition& Input::right_mouse_buttons_entry()
+MousePosition& Input::right_mouse_button_entry()
 {
     return current_right_mouse_entry_;
 }
@@ -59,6 +59,11 @@ MousePosition& Input::right_mouse_buttons_entry()
 MousePosition& Input::scroll_wheel_mouse_position()
 {
     return scroll_wheel_mouse_position_;
+}
+
+void Input::reset_mouse_button_state(MouseButtons button)
+{
+    mouse_button_states_[button] = false;
 }
 
 void Input::setup_world_data(int width, int height)
@@ -78,7 +83,7 @@ bool Input::input_loop()
 
         case SDL_MOUSEWHEEL:
         {
-            std::scoped_lock lock{input_mtx};
+            std::scoped_lock lock{ input_mtx };
             SDL_GetMouseState(&scroll_wheel_mouse_position_.x_pos, &scroll_wheel_mouse_position_.y_pos);
 
             if (sdl_event_.wheel.y > 0) // scroll up
@@ -122,23 +127,20 @@ bool Input::input_loop()
         {
             if (sdl_event_.button.button == SDL_BUTTON_LEFT)
             {
-                std::scoped_lock lock{input_mtx};
+                std::scoped_lock lock{ input_mtx };
                 mouse_button_states_[kLeft] = true;
                 SDL_GetMouseState(&current_left_mouse_entry_.x_pos, &current_left_mouse_entry_.y_pos);
-                DLOG(INFO) << "Source Mouse X: " << current_left_mouse_entry_.x_pos
-                           << " Y: " << current_left_mouse_entry_.y_pos;
             }
             if (sdl_event_.button.button == SDL_BUTTON_MIDDLE)
             {
-                std::scoped_lock lock{input_mtx};
+                std::scoped_lock lock{ input_mtx };
                 mouse_button_states_[kMiddle] = true;
+                SDL_GetMouseState(&current_middle_mouse_entry_.x_pos, &current_middle_mouse_entry_.y_pos);
             }
             if (sdl_event_.button.button == SDL_BUTTON_RIGHT)
             {
-                std::scoped_lock lock{input_mtx};
+                std::scoped_lock lock{ input_mtx };
                 mouse_button_states_[kRight] = true;
-                DLOG(INFO) << "Target Mouse X: " << current_right_mouse_entry_.x_pos
-                           << " Y: " << current_right_mouse_entry_.y_pos;
                 SDL_GetMouseState(&current_right_mouse_entry_.x_pos, &current_right_mouse_entry_.y_pos);
             }
             break;
@@ -147,8 +149,18 @@ bool Input::input_loop()
         {
             if (sdl_event_.button.button == SDL_BUTTON_LEFT)
             {
-                std::scoped_lock lock{input_mtx};
+                std::scoped_lock lock{ input_mtx };
                 mouse_button_states_[kLeft] = false;
+            }
+            if (sdl_event_.button.button == SDL_BUTTON_MIDDLE)
+            {
+                std::scoped_lock lock{ input_mtx };
+                mouse_button_states_[kMiddle] = false;
+            }
+            if (sdl_event_.button.button == SDL_BUTTON_RIGHT)
+            {
+                std::scoped_lock lock{ input_mtx };
+                mouse_button_states_[kRight] = false;
             }
             break;
         }
@@ -177,6 +189,13 @@ bool Input::input_loop()
                 left_shift_down_ = true;
                 LOG(INFO) << "LSHIFT down";
             }
+            if (sdl_event_.key.keysym.sym == SDLK_p)
+            {
+                if (left_alt_down_) {
+                    show_astar_path_ = true;
+                }
+            }
+
             if (sdl_event_.key.keysym.sym == SDLK_w || sdl_event_.key.keysym.sym == SDLK_UP)
             {
                 // move north
@@ -252,11 +271,19 @@ bool Input::input_loop()
                 left_alt_down_ = false;
                 LOG(INFO) << "LALT up";
             }
+
             if (sdl_event_.key.keysym.sym == SDLK_LSHIFT)
             {
                 left_shift_down_ = false;
                 LOG(INFO) << "LSHIFT up";
             }
+
+            if (sdl_event_.key.keysym.sym == SDLK_p)
+            {
+                if (left_alt_down_) {
+                    show_astar_path_ = false;
+                }
+            };
             break;
         }
         default:
@@ -274,4 +301,26 @@ void Input::append_left_mouse_input(MousePosition& entry)
 void Input::append_right_mouse_input(MousePosition& entry)
 {
     current_right_mouse_entry_ = entry;
+}
+
+bool Input::show_astar_path() const
+{
+    return show_astar_path_;
+}
+
+const SelectedArmies& Input::get_selected_armies() const
+{
+    return selected_armies_;
+}
+
+void Input::add_selected_army(const ArmyID& army)
+{
+    selected_armies_.push_back(army);
+}
+
+void Input::clear_selected_armies()
+{
+    if (!left_ctrl_down_) {
+        selected_armies_.clear();
+    }
 }

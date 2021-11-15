@@ -121,7 +121,11 @@ void Render::draw_world()
     SDL_RenderClear(renderer_);
     SDL_RenderCopy(renderer_, map_texture_->texture, nullptr, nullptr);
     kingdom_->draw_sprites(renderer_);
-    draw_debug_astar();
+
+    //if (input_->show_astar_path()) {
+        draw_debug_astar();
+    //}
+
     SDL_RenderDrawRect(renderer_, &input_->highlight_square_);
     SDL_SetRenderTarget(renderer_, nullptr);
     SDL_RenderCopy(renderer_, texture_buffer_, &camera_, nullptr);

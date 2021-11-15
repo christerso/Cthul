@@ -83,8 +83,10 @@ void Kingdom::setup_kingdom()
 
     // assign army to player and start it at the same position
     LOG(INFO) << "X: " << player_.get_position().x << " Y: " << player_.get_position().y;
+    auto [x, y] = player_.get_position();
+    Position noconstpos{ x,y };
     auto army = std::make_unique<Army>(
-        Army(player_, player_.get_position(), resource_manager_.get_image("human-swordman"), 100));
+        Army(player_, noconstpos, resource_manager_.get_image("human-swordman"), 100));
     auto id = army->get_id();
     armies_[id] = std::move(army);
 }
@@ -200,41 +202,47 @@ void Kingdom::event()
     }
 }
 
+// Process: is responsible for
+// 1. astar calculations
+// 2. acting on mouse input
+//
 void Kingdom::process()
 {
     LOG(INFO) << "starting process thread...";
     while (g_running)
     {
-        // process mouse selections
         if (input_.get_left_mouse_button_state())
         {
+            input_.reset_mouse_button_state(kLeft);
             for (auto const& [id, army] : armies_)
             {
                 const auto mouse_coords = input_.left_mouse_button_entry();
                 if (coords_within_square(mouse_coords.x_pos, mouse_coords.y_pos, army.get()->get_sprite_rect()))
                 {
-                    // Draw a path with astar from one castle to another.
-                    //
-                    // Take the clicked army and move it to another castle
-                    // this means fill the astar with the world weight data
-                    // grab another castle (for now) and make astar trace a path to the castle
-                    // move the unit through the path to the other castle.
-                    // win
-                    //
-
-                    const auto rect = army.get()->get_sprite_rect();
-                    const auto [start_x, start_y] = get_square(Position{rect.x, rect.y});
-
-                    auto castle_id = get_castle_id(3);
-                    const Castle& dest = get_castle(castle_id);
-                    const auto pos = dest.get_position();
-                    const auto [dest_x, dest_y] = get_square(pos);
-                    MovementPath& path = army.get()->get_movement_path();
-                    path.resize(map_tile_size_x_ * map_tile_size_y_);
-                    astar_.astar(start_x, start_y, dest_x, dest_y, false);
-                    int i = 0;
+                    input_.add_selected_army(army->get_id());
                 }
             }
+        }
+        if (input_.get_right_mouse_button_state())
+        {
+            input_.reset_mouse_button_state(kRight);
+            const auto mouse_coords = input_.right_mouse_button_entry();
+            const SelectedArmies& armies = input_.get_selected_armies();
+            if (armies.empty())
+            {
+                return;
+            }
+            for (auto& army_id : armies)
+            {
+                // for each army selected, call astar and plot a path, storing the path in the army itself.
+                const Army* army = armies_[army_id].get();
+                const Position& pos = get_square(army->get_position());
+                Position mouse_pos;
+                mouse_to_screen_coords(mouse_coords.x_pos, mouse_coords.y_pos, mouse_pos);
+                auto destination = get_square(mouse_pos);
+                astar_.astar(pos.x, pos.y, destination.x, destination.y, false);
+            }
+            input_.clear_selected_armies();
         }
     }
 }
@@ -243,17 +251,23 @@ Position Kingdom::get_square(const Position& pos) const
 {
     const auto tile_width = map_width_ / map_tile_size_x_;
     const auto tile_height = map_height_ / map_tile_size_y_;
-    return Position{ pos.x / tile_width, pos.y / tile_height};
+    return Position{ pos.x / tile_width, pos.y / tile_height };
+}
+
+void Kingdom::mouse_to_screen_coords(int x, int y, Position& position) const
+{
+    const float scale_x = input_.get_scale() * static_cast<float>(window_width_) / static_cast<float>(map_width_);
+    const float scale_y = input_.get_scale() * static_cast<float>(window_height_) / static_cast<float>(map_height_);
+    position.x = static_cast<int>(static_cast<float>(x) / scale_x);
+    position.y = static_cast<int>(static_cast<float>(y) / scale_y);
 }
 
 bool Kingdom::coords_within_square(int x, int y, const SDL_Rect& rect) const
 {
-    const float scale_x = input_.get_scale() * static_cast<float>(window_width_) / static_cast<float>(map_width_);
-    const float scale_y = input_.get_scale() * static_cast<float>(window_height_) / static_cast<float>(map_height_);
-    x = static_cast<int>(static_cast<float>(x) / scale_x);
-    y = static_cast<int>(static_cast<float>(y) / scale_y);
+    Position pos;
+    mouse_to_screen_coords(x, y, pos);
 
-    if ((x > rect.x) && (x < rect.x + rect.w) && (y > rect.y) && (y < rect.y + rect.h))
+    if ((pos.x > rect.x) && (pos.x < rect.x + rect.w) && (pos.y > rect.y) && (pos.y < rect.y + rect.h))
     {
         return true;
     }

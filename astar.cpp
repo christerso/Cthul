@@ -8,10 +8,10 @@
 using namespace star;
 
 // Scan the 8 positions around the center
-static int square_check[] = {-1, -1, 0, -1, 1, -1, -1, 0, 1, 0, -1, 1, 0, 1, 1, 1};
+static int square_check[] = { -1, -1, 0, -1, 1, -1, -1, 0, 1, 0, -1, 1, 0, 1, 1, 1 };
 
-const static int LINEAR_COST = 10;
-const static int DIAGONAL_COST = 14;
+const static int LINEAR_COST = 8;
+const static int DIAGONAL_COST = 11;
 const static int BLOCKED = 7;
 AStar::AStar()
     : m_enable_debug(false)
@@ -69,11 +69,12 @@ void AStar::size(int x, int y) {}
 
 bool AStar::astar(const int from_x, const int from_y, const int to_x, const int to_y, bool ignore_blocked)
 {
+    reset_data();
+    final_path_.clear();
     if (!m_current_bound)
     {
         return false;
     }
-
     // Verify that the start position is possible
     if (!ignore_blocked) // for flying things
     {
@@ -132,7 +133,7 @@ bool AStar::astar(const int from_x, const int from_y, const int to_x, const int 
     entry->position = m_start_position;
     entry->costs.g_score = 0;
     entry->costs.h_score = 0;
-    entry->parent = 0;
+    entry->parent = nullptr;
     add_open_list_entry_by_position(m_start_position, entry);
 
     // Now build the open list.
@@ -155,6 +156,7 @@ const std::vector<int>& AStar::get_final_path() const
 
 void AStar::add_open_list_entry_by_position(const Position pos, Entry* entry)
 {
+    entry->costs.g_score += m_current_bound[pos];
     m_open_score_list.insert(std::make_pair(entry->costs.h_score + entry->costs.g_score, entry));
     m_open_position_list[pos] = entry;
 }
@@ -163,6 +165,7 @@ void AStar::add_open_list_entry_by_position(const Position pos, Entry* entry)
 // removed in the open list.
 void AStar::add_closed_list_entry_by_position(Position pos, Entry* entry)
 {
+    entry->costs.g_score += m_current_bound[pos];
     m_closed_score_list.insert(std::make_pair(entry->costs.h_score + entry->costs.g_score, entry));
     m_closed_position_list[pos] = entry;
 }
@@ -184,7 +187,6 @@ bool AStar::change_open_to_closed(Entry* entry)
 
         ++it_f;
     }
-
     // Now the correct entry has been found; it_f is pointing to it.
     m_closed_score_list.insert(std::make_pair(score, entry));
     // Erasing this score entry as the other score entry with the same score will be used
@@ -208,7 +210,8 @@ bool AStar::build_open_list()
     Position pos_y = 0;
     const Position end_x = m_end_position % m_map_size_x;
     const Position end_y = m_end_position / m_map_size_x;
-    const int size = std::size(square_check);
+    int gscore = m_current_bound[end_y * end_x + end_x];
+    constexpr size_t size = std::size(square_check);
     int tentative_g_score = 0;
 
     // Only checking position list as both score and position should be synced
@@ -224,11 +227,12 @@ bool AStar::build_open_list()
 
         change_open_to_closed(m_open_score_list.begin()->second);
 
-        for (int j = 0; j < size; j += 2)
+
+        for (size_t j = 0; j < size; j += 2)
         {
             pos_x = active_entry->position % m_map_size_x;
             pos_y = active_entry->position / m_map_size_x;
-
+            active_entry->costs.g_score += m_current_bound[pos];
             // Check for blocked squares
             if ((pos_x + square_check[j] < 0) || (pos_x + square_check[j] > m_map_size_x - 1))
             {
@@ -250,7 +254,6 @@ bool AStar::build_open_list()
 
             // If not blocked get this position
             pos = pos_y * m_map_size_x + pos_x;
-
             // Check if this position is in the closed list, if so take next position
             if (m_closed_position_list.find(pos) != m_closed_position_list.end())
             {
@@ -265,10 +268,9 @@ bool AStar::build_open_list()
             {
                 tentative_g_score = active_entry->costs.g_score + LINEAR_COST;
             }
-
             // Check if the new position already is in the open list
             bool new_entry = false;
-            Entry* child_position = 0;
+            Entry* child_position = nullptr;
             PositionList::const_iterator it = m_open_position_list.find(pos);
 
             if (it != m_open_position_list.end())

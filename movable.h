@@ -38,7 +38,7 @@ public:
     {
         position_ = pos;
     };
-    Position& get_position() { return position_; }
+    const Position& get_position() const { return position_; }
 
 protected:
     Behaviour behaviour_ = Behaviour::STATIC;
