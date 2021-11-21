@@ -10,8 +10,8 @@ using namespace star;
 // Scan the 8 positions around the center
 static int square_check[] = { -1, -1, 0, -1, 1, -1, -1, 0, 1, 0, -1, 1, 0, 1, 1, 1 };
 
-const static int LINEAR_COST = 8;
-const static int DIAGONAL_COST = 11;
+const static int LINEAR_COST = 2;
+const static int DIAGONAL_COST = 3;
 const static int BLOCKED = 7;
 AStar::AStar()
     : m_enable_debug(false)
@@ -69,6 +69,7 @@ void AStar::size(int x, int y) {}
 
 bool AStar::astar(const int from_x, const int from_y, const int to_x, const int to_y, bool ignore_blocked)
 {
+    cleanup();
     reset_data();
     final_path_.clear();
     if (!m_current_bound)
@@ -149,7 +150,7 @@ bool AStar::astar(const int from_x, const int from_y, const int to_x, const int 
     return true;
 }
 
-const std::vector<int>& AStar::get_final_path() const
+std::vector<int>& AStar::get_final_path()
 {
     return final_path_;
 }
@@ -210,7 +211,6 @@ bool AStar::build_open_list()
     Position pos_y = 0;
     const Position end_x = m_end_position % m_map_size_x;
     const Position end_y = m_end_position / m_map_size_x;
-    int gscore = m_current_bound[end_y * end_x + end_x];
     constexpr size_t size = std::size(square_check);
     int tentative_g_score = 0;
 
@@ -234,7 +234,7 @@ bool AStar::build_open_list()
             pos_y = active_entry->position / m_map_size_x;
             active_entry->costs.g_score += m_current_bound[pos];
             // Check for blocked squares
-            if ((pos_x + square_check[j] < 0) || (pos_x + square_check[j] > m_map_size_x - 1))
+            if ((pos_x + square_check[j] < 0) || (pos_x + square_check[j] > m_map_size_x))
             {
                 continue; // Skipping out of bounds on x
             }
@@ -243,7 +243,7 @@ bool AStar::build_open_list()
                 pos_x += square_check[j];
             }
 
-            if ((pos_y + square_check[j + 1] < 0) || (pos_y + square_check[j + 1] > m_map_size_y - 1))
+            if ((pos_y + square_check[j + 1] < 0) || (pos_y + square_check[j + 1] > m_map_size_y))
             {
                 continue; // Skipping out of bounds on y
             }
@@ -299,7 +299,7 @@ bool AStar::build_open_list()
                 child_position->costs.g_score = tentative_g_score;
             }
 
-            child_position->costs.h_score = (std::abs(pos_x - end_x)) + (std::abs(pos_y - end_y)) * 10;
+            child_position->costs.h_score = (std::abs(pos_x - end_x)) + (std::abs(pos_y - end_y));
             /* DEBUG("Adding X:" << pos_x << " Y:" << pos_y << " to open list" << std::endl);
             DEBUG("g:" << child_position->costs.g_score << " h:" << child_position->costs.h_score
                        << " Total:" << child_position->costs.g_score + child_position->costs.h_score << std::endl);
@@ -346,9 +346,8 @@ bool AStar::buildPath(const Entry* parentEntry)
         m_path_result.push_front(e->position);
         e = e->parent;
     }
-
-
-    std::copy(m_path_result.begin(), m_path_result.end(), std::back_inserter(final_path_));
+    std::ranges::copy(m_path_result, std::back_inserter(final_path_));
+    
 
     if (m_enable_debug)
     {

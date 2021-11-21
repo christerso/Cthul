@@ -16,10 +16,19 @@
 #include <boost/random.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/thread_pool.hpp>
-
+#include <glm/vec2.hpp>
 
 namespace king
 {
+
+enum class Level
+{
+    kGround = 0,
+    kUnderground,
+    kAir,
+    kWater
+};
+
 using KingdomID = std::string;
 using ThreadMethod = std::function<void()>;
 using CastleIDs = std::vector<CastleID>;
@@ -38,8 +47,8 @@ public:
     void weather();
     void event();
     void process();
-    Position get_square(const Position& pos) const;
-    void mouse_to_screen_coords(int x, int y, Position& position) const;
+    glm::vec2 get_square_pixel_position(int position) const;
+    void mouse_to_screen_coords(int x, int y, common::Position& position) const;
     bool coords_within_square(int x, int y, const SDL_Rect& rect) const;
     CastleID& get_castle_id(int position);
     void spawn_new_army();
@@ -50,9 +59,11 @@ public:
     std::map<ArmyID, std::unique_ptr<Army>>& get_armies();
     void start_threads();
     void stop_threads();
-    const std::vector<int>& get_astar_result() const;
-    int get_tile_sizes();
+    std::vector<int>& get_astar_result();
+    int get_tile_sizes() const;
 private:
+    bool right_mouse_action_ = false;
+    bool left_mouse_action_ = false;
     CastleIDs ids_;
     boost::asio::thread_pool pool;
     KingdomID kingdom_id_;

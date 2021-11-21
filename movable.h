@@ -1,9 +1,6 @@
 #pragma once
 
-#include "position.h"
-
-#include <SDL_render.h>
-#include <SDL_rect.h>
+#include "common.h"
 
 namespace king
 {
@@ -34,15 +31,15 @@ public:
     MovableEntity(const MovableEntity& me) = default;
     virtual void move(Origin origin) = 0;
 
-    void set_position(Position& pos)
+    void set_position(common::Position& pos)
     {
         position_ = pos;
     };
-    const Position& get_position() const { return position_; }
+    common::Position& get_position() { return position_; }
 
 protected:
     Behaviour behaviour_ = Behaviour::STATIC;
-    Position position_;
+    common::Position position_;
 };
 
 } // namespace king

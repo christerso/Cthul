@@ -19,10 +19,12 @@ public:
     SDL_Window& get_window() const;
     SDL_Rect& get_camera();
     bool create_window();
+    void draw_line(float start_x, float start_y, float end_x, float end_y) const;
     void draw_debug_astar() const;
     void draw_weights() const;
     void draw_world();
-    
+    void draw_all_astar_weights();
+
 private:
     float scale_ {1.0f};
     Uint32 previous_time_{};

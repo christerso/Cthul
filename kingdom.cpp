@@ -1,6 +1,7 @@
 #include "kingdom.h"
 #include "common.h"
 #include "player.h"
+#include <glm/vec2.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include "astar.h"
@@ -46,21 +47,21 @@ void Kingdom::setup_kingdom()
     set_astar_data(resource_manager_.get_astar_data());
     start_threads();
     Sprite* world = resource_manager_.get_image("map");
-    map_tile_size_x_ = 100;
-    map_tile_size_y_ = 100;
     input_.setup_world_data(world->source_rect.w, world->source_rect.h);
     map_height_ = world->source_rect.h;
     map_width_ = world->source_rect.w;
+    map_tile_size_x_ = map_height_ / 100;
+    map_tile_size_y_ = map_width_ / 100;
     SDL_GetWindowSize(&render_.get_window(), &window_width_, &window_height_);
     // setup layers
     // launch movement, ai and event threads
     // Calculate any randoms and give armies initial positions in the map
     // Add Army to "movement" queue. Army needs to inherit "behaviour"
     // Setup castles (hardcoded for now)
-    Position castle1_pos{ 150, 305 };
-    Position castle2_pos{ 1485, 695 };
-    Position castle3_pos{ 213, 1263 };
-    Position castle4_pos{ 1806, 1737 };
+    common::Position castle1_pos{ 150, 305 };
+    common::Position castle2_pos{ 1485, 695 };
+    common::Position castle3_pos{ 213, 1263 };
+    common::Position castle4_pos{ 1806, 1737 };
     auto castle1 = std::make_unique<Castle>(Castle(castle1_pos));
     auto castle2 = std::make_unique<Castle>(Castle(castle2_pos));
     auto castle3 = std::make_unique<Castle>(Castle(castle3_pos));
@@ -75,7 +76,7 @@ void Kingdom::setup_kingdom()
     castles_[castle4->get_id()] = std::move(castle4);
 
     // randomize a start castle
-    const auto rnd = common::get_random_value_within_range(0, 3);
+    const auto rnd = common::RangeRand<int>::get_random_value_within_range(0, 3);
     player_.set_castle(ids_[rnd]);
     castles_[ids_[rnd]]->set_owner(player_.get_id());
     auto pos = castles_[ids_[rnd]]->get_position();
@@ -84,7 +85,7 @@ void Kingdom::setup_kingdom()
     // assign army to player and start it at the same position
     LOG(INFO) << "X: " << player_.get_position().x << " Y: " << player_.get_position().y;
     auto [x, y] = player_.get_position();
-    Position noconstpos{ x,y };
+    common::Position noconstpos{ x,y };
     auto army = std::make_unique<Army>(
         Army(player_, noconstpos, resource_manager_.get_image("human-swordman"), 100));
     auto id = army->get_id();
@@ -104,15 +105,16 @@ void Kingdom::start_threads()
 void Kingdom::stop_threads()
 {
     LOG(INFO) << "stopping threads...";
+    input_.process_cv.notify_one();
     pool.join();
 }
 
-const std::vector<int>& Kingdom::get_astar_result() const
+std::vector<int>& Kingdom::get_astar_result()
 {
     return astar_.get_final_path();
 }
 
-int Kingdom::get_tile_sizes()
+int Kingdom::get_tile_sizes() const
 {
     return map_tile_size_x_ / 100;
 }
@@ -152,7 +154,9 @@ void Kingdom::movement()
     while (g_running)
     {
         LOG(INFO) << "movement thread running executing...";
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // TODO: This thread should only execute on army / character movements.
+        // If there are no movements it should not do anything but wait.
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         /*
          * Armies are player controlled and ai controlled.
          * A player army can also become ai controlled if they feel that the player
@@ -162,8 +166,12 @@ void Kingdom::movement()
          * Figure out where the control points go.
          */
          // Iterate through all the army structures and call the move method
+
+
         for (auto const& [owner, army] : armies_)
         {
+            // a moving army has got a movement path as well as a movement state.
+            //
             // if army id is owned by player then move to destination set by player, not by ai
             if (owner == player_.get_id())
             {
@@ -194,6 +202,8 @@ void Kingdom::weather()
 
 void Kingdom::event()
 {
+    std::mutex event_lock;
+    std::unique_lock lk(event_lock);
     LOG(INFO) << "starting event thread...";
     while (g_running)
     {
@@ -208,53 +218,109 @@ void Kingdom::event()
 //
 void Kingdom::process()
 {
+    std::mutex process_lock;
     LOG(INFO) << "starting process thread...";
+    std::unique_lock lk(process_lock);
     while (g_running)
     {
-        if (input_.get_left_mouse_button_state())
+        input_.process_cv.wait(lk);
+        MouseQueueEvent event;
+        input_.get_next_mouse_action(event);
+
+        LOG(INFO) << "processing thread executing...";
+        if (event.action == kNone)
         {
-            input_.reset_mouse_button_state(kLeft);
+            continue;
+        }
+        if (event.action == kLeft)
+        {
             for (auto const& [id, army] : armies_)
             {
-                const auto mouse_coords = input_.left_mouse_button_entry();
-                if (coords_within_square(mouse_coords.x_pos, mouse_coords.y_pos, army.get()->get_sprite_rect()))
+                if (coords_within_square(event.position.x_pos, event.position.y_pos, army->get_sprite_rect()))
                 {
-                    input_.add_selected_army(army->get_id());
+                    input_.add_selected_army(id);
                 }
             }
         }
-        if (input_.get_right_mouse_button_state())
+        if (event.action == kRight)
         {
-            input_.reset_mouse_button_state(kRight);
-            const auto mouse_coords = input_.right_mouse_button_entry();
             const SelectedArmies& armies = input_.get_selected_armies();
             if (armies.empty())
             {
-                return;
+                continue;
             }
             for (auto& army_id : armies)
             {
                 // for each army selected, call astar and plot a path, storing the path in the army itself.
-                const Army* army = armies_[army_id].get();
-                const Position& pos = get_square(army->get_position());
-                Position mouse_pos;
-                mouse_to_screen_coords(mouse_coords.x_pos, mouse_coords.y_pos, mouse_pos);
-                auto destination = get_square(mouse_pos);
-                astar_.astar(pos.x, pos.y, destination.x, destination.y, false);
+                // this plotting should be postponed in the full implementation, taking message delivery time to the army 
+                common::Position mouse_pos;
+                Army* army = armies_[army_id].get();
+                common::Position tile_position = get_square(map_tile_size_x_, map_tile_size_y_, army->get_position());
+                mouse_to_screen_coords(event.position.x_pos, event.position.y_pos, mouse_pos);
+                const auto destination = common::get_square(map_tile_size_x_, map_tile_size_y_, mouse_pos);
+                if (astar_.astar(tile_position.x, tile_position.y, destination.x, destination.y, false))
+                {
+                    auto& result = get_astar_result();
+                    auto it_pos = result.begin();
+                    auto it_end = result.end();
+                    while (it_pos != it_end)
+                    {
+                        common::BezierCurve4 b4{};
+                        b4.p0 = get_square_pixel_position(*it_pos++);
+                        if (it_pos != it_end)
+                        {
+                            b4.p1 = get_square_pixel_position(*it_pos++);
+                        }
+                        else
+                        {
+                            b4.p1 = b4.p0;
+                            b4.p2 = b4.p0;
+                            b4.p3 = b4.p0;
+                            break;
+                        }
+                        if (it_pos != it_end)
+                        {
+                            b4.p2 = get_square_pixel_position(*it_pos++);
+                        }
+                        else
+                        {
+                            b4.p2 = b4.p1;
+                            b4.p3 = b4.p1;
+                            break;
+                        }
+                        if (it_pos != it_end)
+                        {
+                            b4.p3 = get_square_pixel_position(*it_pos++);
+
+                        }
+                        else
+                        {
+                            b4.p3 = b4.p2;
+                            break;
+                        }
+                        army->bezier_path.add_curve(b4, 5);
+                        --it_pos;
+                        --it_pos;
+                    }
+                }
             }
+
+
+
+            //army->set_movement_path(get_astar_result());
             input_.clear_selected_armies();
         }
+
     }
 }
 
-Position Kingdom::get_square(const Position& pos) const
+glm::vec2 Kingdom::get_square_pixel_position(int position) const
 {
-    const auto tile_width = map_width_ / map_tile_size_x_;
-    const auto tile_height = map_height_ / map_tile_size_y_;
-    return Position{ pos.x / tile_width, pos.y / tile_height };
+    const common::Position square_pos{ position % map_tile_size_y_,position / map_tile_size_x_ };
+    return common::get_square_center(map_tile_size_x_, map_tile_size_y_, square_pos);
 }
 
-void Kingdom::mouse_to_screen_coords(int x, int y, Position& position) const
+void Kingdom::mouse_to_screen_coords(int x, int y, common::Position& position) const
 {
     const float scale_x = input_.get_scale() * static_cast<float>(window_width_) / static_cast<float>(map_width_);
     const float scale_y = input_.get_scale() * static_cast<float>(window_height_) / static_cast<float>(map_height_);
@@ -264,7 +330,7 @@ void Kingdom::mouse_to_screen_coords(int x, int y, Position& position) const
 
 bool Kingdom::coords_within_square(int x, int y, const SDL_Rect& rect) const
 {
-    Position pos;
+    common::Position pos;
     mouse_to_screen_coords(x, y, pos);
 
     if ((pos.x > rect.x) && (pos.x < rect.x + rect.w) && (pos.y > rect.y) && (pos.y < rect.y + rect.h))

@@ -163,7 +163,7 @@ public:
     /**
      * Return result
      */
-    [[nodiscard]] const std::vector<int>& get_final_path() const;
+    std::vector<int>& get_final_path();
 
     /**
      * @brief enableDebugDump

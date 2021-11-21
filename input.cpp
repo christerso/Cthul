@@ -34,36 +34,9 @@ void Input::set_camera(SDL_Rect& camera)
     camera_ = camera;
 }
 
-bool Input::get_left_mouse_button_state()
-{
-    std::scoped_lock lock(input_mtx);
-    return mouse_button_states_[kLeft];
-}
-
-bool Input::get_right_mouse_button_state()
-{
-    std::scoped_lock lock(input_mtx);
-    return mouse_button_states_[kRight];
-}
-
-MousePosition& Input::left_mouse_button_entry()
-{
-    return current_left_mouse_entry_;
-}
-
-MousePosition& Input::right_mouse_button_entry()
-{
-    return current_right_mouse_entry_;
-}
-
 MousePosition& Input::scroll_wheel_mouse_position()
 {
     return scroll_wheel_mouse_position_;
-}
-
-void Input::reset_mouse_button_state(MouseButtons button)
-{
-    mouse_button_states_[button] = false;
 }
 
 void Input::setup_world_data(int width, int height)
@@ -78,6 +51,7 @@ bool Input::input_loop()
 {
     while (SDL_PollEvent(&sdl_event_) != 0)
     {
+        LOG_EVERY_N(INFO, 1000) << "Mouse Queue size:" << mouse_queue_.size();
         switch (sdl_event_.type)
         {
 
@@ -125,42 +99,54 @@ bool Input::input_loop()
         }
         case SDL_MOUSEBUTTONDOWN:
         {
+            int x {};
+            int y {};
             if (sdl_event_.button.button == SDL_BUTTON_LEFT)
             {
-                std::scoped_lock lock{ input_mtx };
-                mouse_button_states_[kLeft] = true;
-                SDL_GetMouseState(&current_left_mouse_entry_.x_pos, &current_left_mouse_entry_.y_pos);
+                const std::lock_guard lock{ input_mtx };
+                SDL_GetMouseState(&x, &y);
+                const MousePosition mp{x,y};
+                mouse_queue_.push(MouseQueueEvent{ mp, kLeft });
+                process_cv.notify_one();
             }
-            if (sdl_event_.button.button == SDL_BUTTON_MIDDLE)
+            else if (sdl_event_.button.button == SDL_BUTTON_MIDDLE)
             {
-                std::scoped_lock lock{ input_mtx };
-                mouse_button_states_[kMiddle] = true;
-                SDL_GetMouseState(&current_middle_mouse_entry_.x_pos, &current_middle_mouse_entry_.y_pos);
+                const std::lock_guard lock{ input_mtx };
+                SDL_GetMouseState(&x, &y);
+                const MousePosition mp{x,y};
+                mouse_queue_.push(MouseQueueEvent{ mp, kMiddle });
+                process_cv.notify_one();
             }
-            if (sdl_event_.button.button == SDL_BUTTON_RIGHT)
+            else if (sdl_event_.button.button == SDL_BUTTON_RIGHT)
             {
-                std::scoped_lock lock{ input_mtx };
-                mouse_button_states_[kRight] = true;
-                SDL_GetMouseState(&current_right_mouse_entry_.x_pos, &current_right_mouse_entry_.y_pos);
+                const std::lock_guard lock{ input_mtx };
+                SDL_GetMouseState(&x, &y);
+                const MousePosition mp{x,y};
+                mouse_queue_.push(MouseQueueEvent{ mp, kRight });
+                process_cv.notify_one();
             }
+
             break;
         }
         case SDL_MOUSEBUTTONUP:
         {
             if (sdl_event_.button.button == SDL_BUTTON_LEFT)
             {
-                std::scoped_lock lock{ input_mtx };
+                const std::lock_guard lock{ input_mtx };
                 mouse_button_states_[kLeft] = false;
+                break;
             }
             if (sdl_event_.button.button == SDL_BUTTON_MIDDLE)
             {
-                std::scoped_lock lock{ input_mtx };
+                const std::lock_guard lock{ input_mtx };
                 mouse_button_states_[kMiddle] = false;
+                break;
             }
             if (sdl_event_.button.button == SDL_BUTTON_RIGHT)
             {
-                std::scoped_lock lock{ input_mtx };
+                const std::lock_guard lock{ input_mtx };
                 mouse_button_states_[kRight] = false;
+                break;
             }
             break;
         }
@@ -315,12 +301,28 @@ const SelectedArmies& Input::get_selected_armies() const
 
 void Input::add_selected_army(const ArmyID& army)
 {
+    const std::lock_guard lock{ input_mtx };
     selected_armies_.push_back(army);
 }
 
 void Input::clear_selected_armies()
 {
+    const std::lock_guard lock{ input_mtx };
     if (!left_ctrl_down_) {
         selected_armies_.clear();
     }
+}
+
+bool Input::get_next_mouse_action(MouseQueueEvent& event)
+{
+    std::lock_guard lk{ input_mtx };
+    if (!mouse_queue_.empty())
+    {
+        LOG(INFO) << "Mouse input queue:" << mouse_queue_.size();
+        event = mouse_queue_.front();
+        mouse_queue_.pop();
+        return true;
+    }
+
+    return false;
 }
