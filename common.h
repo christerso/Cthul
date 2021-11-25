@@ -1,88 +1,123 @@
 #pragma once
 
 #include "astar.h"
-
+#include <vector>
 #include <random>
 #include <cmath>
 #include <glm/vec2.hpp>
 #include <glm/common.hpp>
+#include <glm/gtx/spline.hpp>
 
 namespace common
 {
     static constexpr int kSeedVal = 19680821;
-    static std::mt19937 m_generator;
+    static std::mt19937 g_generator;
     constexpr double kPi = 3.14159265358979323846;
 
-    struct Position
-    {
-        int x{};
-        int y{};
-    };
+    // Bezier curve
+// --------------------------------------------------------------------------------------------------------
+    // Hermite
 
-    struct BezierCurve3
+    template <typename T>
+    T cubic_hermite(T p0, T p1, T p2, T p3, const float t)
     {
-        glm::vec2 p0;
-        glm::vec2 p1;
-        glm::vec2 p2;
+        glm::vec2 a = -p0 / 2.0f + (3.0f * p1) / 2.0f - (3.0f * p2) / 2.0f + p3 / 2.0f;
+        glm::vec2 b = p0 - (5.0f * p1) / 2.0f + 2.0f * p2 - p3 / 2.0f;
+        glm::vec2 c = -p0 / 2.0f + p2 / 2.0f;
+        glm::vec2 d = p1;
 
-        [[nodiscard]] glm::vec2 calculate_vector_point() const
+        return a * t * t * t + b * t * t + c * t + d;
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
+
+    inline bool is_in_rectangle(const double center_x, const double center_y, const double radius, const double x,
+        const double y)
+    {
+        return x >= center_x - radius && x <= center_x + radius && y >= center_y - radius && y <= center_y + radius;
+    }
+
+    inline bool is_point_in_circle(const double center_x, const double center_y, const double radius, const double x,
+        const double y)
+    {
+        if (is_in_rectangle(center_x, center_y, radius, x, y))
         {
-            return glm::vec2 { p1.x * 2 - (p0.x + p2.x) / 2, p1.y * 2 - (p0.y + p2.y) / 2 };
-        }
-    };
+            auto dx = center_x - x;
+            auto dy = center_y - y;
 
-    struct BezierCurve4
+            dx *= dx;
+            dy *= dy;
+            const auto distance_squared = dx + dy;
+            const auto radius_squared = radius * radius;
+
+            return distance_squared <= radius_squared;
+        }
+
+        return false;
+    }
+
+    struct Curve
     {
         glm::vec2 p0;
         glm::vec2 p1;
         glm::vec2 p2;
         glm::vec2 p3;
 
-        [[nodiscard]] glm::vec2 calculate_vector_point(const float t) const
+        [[nodiscard]] glm::vec2 calculate_vector_points(const float t)
         {
-            const float tt = t * t;
-            const float ttt = tt * t;
-            const float u = 1.0f - t;
-            const float uu = u * u;
-            const float uuu = uu * u;
-
-            const glm::vec2 point = (uuu * p0) + (3 * uu * t * p1) + (3 * u * tt * p2) + (ttt * p3);
-            return glm::round(point);
-        };
+            return cubic_hermite<glm::vec2>(p0, p1, p2, p3, t);
+        }
     };
 
-    class BezierPath
+    class Path
     {
     public:
-        // adds a curve and asks to take x number of samples from the path 
-        void add_curve(const BezierCurve4& curve, const int samples)
+        void add_curve(const Curve& curve, const int samples)
         {
             curves_.push_back(curve);
             samples_.push_back(samples);
         }
 
-        void sample(std::vector<glm::vec2>& sampled_path) const
+        void update_path_samples()
         {
+            calculated_path_.clear();
+
             for (int i = 0; i < curves_.size(); i++)
             {
-                for (float t = 0.f; t < 1.0f; t += 1.0f / samples_[i] )  // NOLINT(cert-flp30-c)
+                for (float t = 0.f; t < 1.0f; t += 1.0f / samples_[i])  // NOLINT(cert-flp30-c)
                 {
-                    sampled_path.push_back(curves_[i].calculate_vector_point(t));
+                    calculated_path_.emplace_back(curves_[i].calculate_vector_points(t));
                 }
             }
         }
+
+        std::vector<glm::vec2>& get_path()
+        {
+            return calculated_path_;
+        }
+
+        bool check_path() const { return !curves_.empty(); }
+
+        void clear_path()
+        {
+            calculated_path_.clear();
+            curves_.clear();
+            samples_.clear();
+        }
+
     private:
-        std::vector<BezierCurve4> curves_;
+        std::vector<glm::vec2> calculated_path_;
+        std::vector<Curve> curves_;
         std::vector<int> samples_;
     };
 
-    static Position get_square(const int tile_width, const int tile_height, const Position& pos)
+    static glm::vec2 get_square(const int tile_width, const int tile_height, const glm::vec2& pos)
     {
-        const auto tile_square = Position{ pos.x / tile_width, pos.y / tile_height };
+        const auto tile_square = glm::vec2{ pos.x / tile_width, pos.y / tile_height };
         return tile_square;
     }
 
-    static glm::vec2 get_square_center(const int tile_width, const int tile_height, const Position& pos)
+    static glm::vec2 get_square_center(const int tile_width, const int tile_height, const glm::vec2& pos)
     {
         return glm::vec2{ pos.x * tile_width + (tile_width / 2), pos.y * tile_height + (tile_height / 2) };
     }
@@ -117,21 +152,21 @@ namespace common
     inline int RangeRand<int>::get_random_value_within_range(const int start, const int end)
     {
         const std::uniform_int_distribution<> uniform_dist(start, end);
-        return uniform_dist(m_generator);
+        return uniform_dist(g_generator);
     }
 
     template <>
     inline float RangeRand<float>::get_random_value_within_range(const float start, const float end)
     {
         const std::uniform_real_distribution<> uniform_dist(start, end);
-        return static_cast<float>(uniform_dist(m_generator));
+        return static_cast<float>(uniform_dist(g_generator));
     }
 
     template<>
     inline double RangeRand<double>::get_random_value_within_range(const double start, const double end)
     {
         const std::uniform_real_distribution<> uniform_dist(start, end);
-        return uniform_dist(m_generator);
+        return uniform_dist(g_generator);
     }
 
     template <typename T>
@@ -165,68 +200,7 @@ namespace common
         return std::abs(std::abs((x1 - x2)) + std::abs((y1 - y2)));
     }
 
-    // Bezier curve
-    // --------------------------------------------------------------------------------------------------------
-    template <typename T>
-    T bezier_curve(const T t, const T p0, const T p1, const T p2, const T p3)
-    {
-        const auto t2 = t * t;
-        const auto t3 = t2 * t;
 
-        return p0 + 3 * (p1 - p0) * t + 3 * (p2 - 2 * p1 + p0) * t2 + (p3 - 3 * (p2 - p1) - p0) * t3;
-    }
-
-    // Hermite
-
-    template <typename T>
-    T cubic_hermite(T p0, T p1, T p2, T p3, T t)
-    {
-        float a = -p0 / 2.0f + (3.0f * p1) / 2.0f - (3.0f * p2) / 2.0f + p3 / 2.0f;
-        float b = p0 - (5.0f * p1) / 2.0f + 2.0f * p2 - p3 / 2.0f;
-        float c = -p0 / 2.0f + p2 / 2.0f;
-        float d = p1;
-
-        return a * t * t * t + b * t * t + c * t + d;
-    }
-
-    // Catmull Rom
-    // ---------------------------------------------------------------------------------------------------------
-
-    template <typename T>
-    T catmull_rom_spline(const T t, const T p0, const T p1, const T p2, const T p3)
-    {
-        const auto c1 = 1.0 * p1;
-        const auto c2 = -0.5 * p0 + 0.5 * p2;
-        const auto c3 = 1.0 * p0 + -2.5 * p1 + 2.0 * p2 + -0.5 * p3;
-        const auto c4 = -0.5 * p0 + 1.5 * p1 + -1.5 * p2 + 0.5 * p3;
-
-        return ((c4 * t + c3) * t + c2) * t + c1;
-    }
-
-    inline bool is_in_rectangle(const double center_x, const double center_y, const double radius, const double x,
-        const double y)
-    {
-        return x >= center_x - radius && x <= center_x + radius && y >= center_y - radius && y <= center_y + radius;
-    }
-
-    inline bool is_point_in_circle(const double center_x, const double center_y, const double radius, const double x,
-        const double y)
-    {
-        if (is_in_rectangle(center_x, center_y, radius, x, y))
-        {
-            auto dx = center_x - x;
-            auto dy = center_y - y;
-
-            dx *= dx;
-            dy *= dy;
-            const auto distance_squared = dx + dy;
-            const auto radius_squared = radius * radius;
-
-            return distance_squared <= radius_squared;
-        }
-
-        return false;
-    }
 
     // Used to plot a sight-line from point x0, y0 to x1, y1 using Bresenheim's line algorithm.
     inline void get_sightline(int x0, int y0, const int x1, const int y1)

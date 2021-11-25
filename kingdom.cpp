@@ -9,8 +9,9 @@
 using namespace king;
 
 Kingdom::Kingdom()
-    : kingdom_id_(boost::uuids::to_string(boost::uuids::random_generator()()))
+    : kingdom_id_(to_string(boost::uuids::random_generator()()))
     , render_(this, &resource_manager_)
+    , timer_(*Timer::instance())
 {
 }
 
@@ -22,8 +23,10 @@ Kingdom::~Kingdom()
 void Kingdom::run()
 {
     setup_kingdom();
+
     while (input_.input_loop())
     {
+        timer_.update();
         render_.draw_world();
     }
     // stop threads
@@ -40,6 +43,10 @@ std::map<ArmyID, std::unique_ptr<Army>>& Kingdom::get_armies()
 {
     return armies_;
 }
+
+// The kingdom size is 120km by 120km
+// This mean that each astar grid is 1.2km.
+// The speed to traverse an astar grid of 1.2km are (if 5km/h)
 
 void Kingdom::setup_kingdom()
 {
@@ -58,10 +65,10 @@ void Kingdom::setup_kingdom()
     // Calculate any randoms and give armies initial positions in the map
     // Add Army to "movement" queue. Army needs to inherit "behaviour"
     // Setup castles (hardcoded for now)
-    common::Position castle1_pos{ 150, 305 };
-    common::Position castle2_pos{ 1485, 695 };
-    common::Position castle3_pos{ 213, 1263 };
-    common::Position castle4_pos{ 1806, 1737 };
+    glm::vec2 castle1_pos{ 150, 305 };
+    glm::vec2 castle2_pos{ 1485, 695 };
+    glm::vec2 castle3_pos{ 213, 1263 };
+    glm::vec2 castle4_pos{ 1806, 1737 };
     auto castle1 = std::make_unique<Castle>(Castle(castle1_pos));
     auto castle2 = std::make_unique<Castle>(Castle(castle2_pos));
     auto castle3 = std::make_unique<Castle>(Castle(castle3_pos));
@@ -84,10 +91,9 @@ void Kingdom::setup_kingdom()
 
     // assign army to player and start it at the same position
     LOG(INFO) << "X: " << player_.get_position().x << " Y: " << player_.get_position().y;
-    auto [x, y] = player_.get_position();
-    common::Position noconstpos{ x,y };
+    auto& nonconstpos = player_.get_position();
     auto army = std::make_unique<Army>(
-        Army(player_, noconstpos, resource_manager_.get_image("human-swordman"), 100));
+        Army(player_, nonconstpos, resource_manager_.get_image("human-swordman"), 100));
     auto id = army->get_id();
     armies_[id] = std::move(army);
 }
@@ -95,11 +101,11 @@ void Kingdom::setup_kingdom()
 void Kingdom::start_threads()
 {
     g_running = true;
-    post(pool, [this]() { this->movement(); });
-    post(pool, [this]() { this->ai(); });
-    post(pool, [this]() { this->weather(); });
-    post(pool, [this]() { this->event(); });
-    post(pool, [this]() { this->process(); });
+    post(pool, [this]()->void { this->movement(); });
+    post(pool, [this]()->void { this->ai(); });
+    post(pool, [this]()->void { this->weather(); });
+    post(pool, [this]()->void { this->event(); });
+    post(pool, [this]()->void { this->process(); });
 }
 
 void Kingdom::stop_threads()
@@ -135,9 +141,45 @@ Input& Kingdom::get_input()
     return input_;
 }
 
+void Kingdom::draw_bezier_paths(SDL_Renderer* renderer) const
+{
+    for (const auto& army : armies_)
+    {
+        if (!army.second->movement_path.check_path())
+        {
+            return;
+        }
+
+        army.second->movement_path.update_path_samples();
+
+        auto& army_movement_path = army.second->movement_path.get_path();
+        if (army_movement_path.empty())
+        {
+            return;
+        }
+        auto it_p = army_movement_path.begin();
+
+        glm::vec2 from{}, to{};
+        while (it_p != army_movement_path.end())
+        {
+            from = { it_p->x, it_p->y };
+            ++it_p;
+            if (it_p != army_movement_path.end())
+            {
+                to = { it_p->x, it_p->y };
+            }
+            else
+            {
+                to = { from.x, from.y };
+            }
+            SDL_RenderDrawLineF(renderer, from.x, from.y, to.x, to.y);
+        }
+    }
+}
+
 void Kingdom::draw_sprites(SDL_Renderer* renderer) const
 {
-    for (auto const& val : armies_)
+    for (const auto& val : armies_)
     {
         val.second->draw(renderer);
     }
@@ -148,11 +190,16 @@ const KingdomID& Kingdom::get_id() const
     return kingdom_id_;
 }
 
+/*
+ * Iterates through all the movables, calles the update method.
+ * The update method will check if there exists a curve, if a curve is found, move along the curve.
+ */
 void Kingdom::movement()
 {
     LOG(INFO) << "staring movement thread..";
     while (g_running)
     {
+
         LOG(INFO) << "movement thread running executing...";
         // TODO: This thread should only execute on army / character movements.
         // If there are no movements it should not do anything but wait.
@@ -168,13 +215,17 @@ void Kingdom::movement()
          // Iterate through all the army structures and call the move method
 
 
-        for (auto const& [owner, army] : armies_)
+        for (const auto& [owner, army] : armies_)
         {
             // a moving army has got a movement path as well as a movement state.
             //
             // if army id is owned by player then move to destination set by player, not by ai
-            if (owner == player_.get_id())
+
+            if (army->path_active)
             {
+                // setup path
+
+                army->move(Origin::PLAYER);
             }
         }
     }
@@ -216,6 +267,7 @@ void Kingdom::event()
 // 1. astar calculations
 // 2. acting on mouse input
 //
+constexpr int kCurveSamples = 5;
 void Kingdom::process()
 {
     std::mutex process_lock;
@@ -234,7 +286,7 @@ void Kingdom::process()
         }
         if (event.action == kLeft)
         {
-            for (auto const& [id, army] : armies_)
+            for (const auto& [id, army] : armies_)
             {
                 if (coords_within_square(event.position.x_pos, event.position.y_pos, army->get_sprite_rect()))
                 {
@@ -253,84 +305,81 @@ void Kingdom::process()
             {
                 // for each army selected, call astar and plot a path, storing the path in the army itself.
                 // this plotting should be postponed in the full implementation, taking message delivery time to the army 
-                common::Position mouse_pos;
+                glm::vec2 mouse_pos;
                 Army* army = armies_[army_id].get();
-                common::Position tile_position = get_square(map_tile_size_x_, map_tile_size_y_, army->get_position());
+                army->movement_path.clear_path();
+                const glm::vec2 tile_position = common::get_square(map_tile_size_x_, map_tile_size_y_, army->get_position());
                 mouse_to_screen_coords(event.position.x_pos, event.position.y_pos, mouse_pos);
                 const auto destination = common::get_square(map_tile_size_x_, map_tile_size_y_, mouse_pos);
-                if (astar_.astar(tile_position.x, tile_position.y, destination.x, destination.y, false))
+                if (astar_.astar(static_cast<int>(tile_position.x), static_cast<int>(tile_position.y), static_cast<int>(destination.x), static_cast<int>(destination.y), false))
                 {
                     auto& result = get_astar_result();
+                    while (result.size() % 4 != 0)
+                    {
+                        result.push_back(result[result.size() - 1]);
+                    }
+
                     auto it_pos = result.begin();
                     auto it_end = result.end();
                     while (it_pos != it_end)
                     {
-                        common::BezierCurve4 b4{};
-                        b4.p0 = get_square_pixel_position(*it_pos++);
+                        common::Curve curve{};
+                        curve.p0 = get_square_pixel_position(*it_pos++);
+                        curve.p1 = get_square_pixel_position(*it_pos++);
                         if (it_pos != it_end)
                         {
-                            b4.p1 = get_square_pixel_position(*it_pos++);
+                            curve.p2 = get_square_pixel_position(*it_pos++);
                         }
                         else
                         {
-                            b4.p1 = b4.p0;
-                            b4.p2 = b4.p0;
-                            b4.p3 = b4.p0;
-                            break;
+                            curve.p2 = curve.p1;
+                            curve.p3 = curve.p1;
+                            army->movement_path.add_curve(curve, kCurveSamples);
+                            continue;
                         }
                         if (it_pos != it_end)
                         {
-                            b4.p2 = get_square_pixel_position(*it_pos++);
+                            curve.p3 = get_square_pixel_position(*it_pos++);
                         }
                         else
                         {
-                            b4.p2 = b4.p1;
-                            b4.p3 = b4.p1;
-                            break;
+                            curve.p3 = curve.p2;
+                            army->movement_path.add_curve(curve, kCurveSamples);
+                            continue;
                         }
-                        if (it_pos != it_end)
-                        {
-                            b4.p3 = get_square_pixel_position(*it_pos++);
-
-                        }
-                        else
-                        {
-                            b4.p3 = b4.p2;
-                            break;
-                        }
-                        army->bezier_path.add_curve(b4, 5);
                         --it_pos;
                         --it_pos;
+                        army->movement_path.add_curve(curve, kCurveSamples);
                     }
+                    army->init_path();
                 }
             }
-
-
-
-            //army->set_movement_path(get_astar_result());
             input_.clear_selected_armies();
         }
-
     }
 }
 
 glm::vec2 Kingdom::get_square_pixel_position(int position) const
 {
-    const common::Position square_pos{ position % map_tile_size_y_,position / map_tile_size_x_ };
-    return common::get_square_center(map_tile_size_x_, map_tile_size_y_, square_pos);
+    constexpr int tile_pos_y = 100;
+    constexpr int tile_pos_x = 100;
+    const auto tile_size = map_width_ / 100;
+    const auto pos_x = position % tile_pos_y;
+    const auto pos_y = position / tile_pos_x;
+    return glm::vec2{ pos_x * tile_size + (tile_size / 2), pos_y * tile_size + (tile_size / 2) };
 }
 
-void Kingdom::mouse_to_screen_coords(int x, int y, common::Position& position) const
+void Kingdom::mouse_to_screen_coords(int x, int y, glm::vec2& position) const
 {
     const float scale_x = input_.get_scale() * static_cast<float>(window_width_) / static_cast<float>(map_width_);
     const float scale_y = input_.get_scale() * static_cast<float>(window_height_) / static_cast<float>(map_height_);
-    position.x = static_cast<int>(static_cast<float>(x) / scale_x);
-    position.y = static_cast<int>(static_cast<float>(y) / scale_y);
+    position.x = x / scale_x;
+    position.y = y / scale_y;
 }
 
 bool Kingdom::coords_within_square(int x, int y, const SDL_Rect& rect) const
 {
-    common::Position pos;
+    glm::vec2 pos;
     mouse_to_screen_coords(x, y, pos);
 
     if ((pos.x > rect.x) && (pos.x < rect.x + rect.w) && (pos.y > rect.y) && (pos.y < rect.y + rect.h))

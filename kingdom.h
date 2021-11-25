@@ -8,6 +8,7 @@
 #include "player.h"
 #include "render.h"
 #include "resourcemanager.h"
+#include "timer.h"
 
 #include <map>
 #include <memory>
@@ -48,11 +49,12 @@ public:
     void event();
     void process();
     glm::vec2 get_square_pixel_position(int position) const;
-    void mouse_to_screen_coords(int x, int y, common::Position& position) const;
+    void mouse_to_screen_coords(int x, int y, glm::vec2& position) const;
     bool coords_within_square(int x, int y, const SDL_Rect& rect) const;
     CastleID& get_castle_id(int position);
     void spawn_new_army();
     Input& get_input();
+    void draw_bezier_paths(SDL_Renderer* renderer) const;
     void draw_sprites(SDL_Renderer* renderer) const;
     const KingdomID& get_id() const;
     const Castle& get_castle(const CastleID& id) const;
@@ -70,6 +72,7 @@ private:
     star::AStar astar_;
     Owner owner_;
     Input input_;
+    Timer& timer_;
     Player player_;
     std::map<CastleID, std::unique_ptr<Castle>> castles_;
     std::map<ArmyID, std::unique_ptr<Army>> armies_;

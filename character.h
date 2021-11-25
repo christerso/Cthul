@@ -18,6 +18,7 @@ public:
     ~Character();
     const CharacterID& get_id();
     void move(Origin origin) override;
+    void set_velocity(float velocity) override;
 protected:
     CharacterID character_id_;
     std::string name_;

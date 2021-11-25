@@ -8,6 +8,7 @@ using namespace king;
 Character::Character()
     : character_id_(boost::uuids::to_string(boost::uuids::random_generator()()))
 {
+
 }
 
 Character::~Character()
@@ -21,4 +22,9 @@ const CharacterID& Character::get_id()
 
 void Character::move(Origin origin)
 {
+}
+
+void Character::set_velocity(float velocity)
+{
+    velocity_ = velocity;
 }

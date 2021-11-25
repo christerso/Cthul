@@ -90,17 +90,13 @@ void Render::draw_world()
 {
     camera_ = input_->get_camera();
     scale_ = input_->get_scale();
-    previous_time_ = current_time_;
-    current_time_ = SDL_GetTicks();
-    delta_ = current_time_ - previous_time_;
-    updated_delta_ += delta_;
     delay_time_ = static_cast<int>(1000.0f / fps_);
 
     SDL_SetRenderTarget(renderer_, texture_buffer_);
     SDL_RenderClear(renderer_);
     SDL_RenderCopy(renderer_, map_texture_->texture, nullptr, nullptr);
     kingdom_->draw_sprites(renderer_);
-
+    kingdom_->draw_bezier_paths(renderer_);
     if (input_->show_astar_path()) {
         draw_debug_astar();
         draw_all_astar_weights();
@@ -112,9 +108,9 @@ void Render::draw_world()
     SDL_SetRenderTarget(renderer_, nullptr);
     SDL_RenderPresent(renderer_); // swap in the final image
 
-    if (delta_ < delay_time_)
+    if (Timer::instance()->delta_time() < delay_time_)
     {
-        SDL_Delay(delay_time_ - delta_);
+        SDL_Delay(delay_time_ - static_cast<int>(Timer::instance()->delta_time()));
     }
 }
 
@@ -170,31 +166,8 @@ void Render::draw_all_astar_weights()
 
         square = { pos_x * tile_size, pos_y * tile_size, tile_size, tile_size };
 
-        SDL_SetRenderDrawColor(renderer_, colors[data[i]], colors[data[i]], colors[data[i]], 100);
+        SDL_SetRenderDrawColor(renderer_, colors[data[i]], colors[data[i]], colors[data[i]], 155);
         SDL_RenderFillRect(renderer_, &square);
     }
 
-}
-
-void Render::draw_weights() const
-{
-    //std::vector<char> map_ascii;
-
-    //map_ascii.resize(m_map_size_x * m_map_size_y);
-
-    //// Start
-    //for (int i = 0; i < m_map_size_x * m_map_size_y; i++)
-    //{
-    //    switch (m_current_bound[i])
-    //    {
-    //    case 0:
-    //    {
-    //        map_ascii[i] = '#';
-    //        continue;
-    //    }
-    //    default:
-    //        map_ascii[i] = '-';
-    //        continue;
-    //    }
-    //}
 }

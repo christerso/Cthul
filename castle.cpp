@@ -4,7 +4,7 @@
 
 using namespace king;
 
-Castle::Castle(common::Position& pos)
+Castle::Castle(glm::vec2& pos)
     : position_(pos)
     , castle_id_(boost::uuids::to_string(boost::uuids::random_generator()()))
 {
@@ -15,7 +15,7 @@ Castle::~Castle()
     LOG(INFO) << "Castle destructor called";
 }
 
-const common::Position& Castle::get_position() const
+const glm::vec2& Castle::get_position() const
 {
     return position_;
 }

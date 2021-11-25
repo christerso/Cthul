@@ -3,31 +3,44 @@
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <glog/logging.h>
+#include <cmath>
+#include <glm/gtx/norm.hpp>
 
 using namespace king;
 
-Army::Army(Character& owner, common::Position& pos, Sprite* sprite, int army_size)
+Army::Army(Character& owner, glm::vec2& pos, Sprite* sprite, int army_size)
     : owner_(owner.get_id())
-    , army_id_(boost::uuids::to_string(boost::uuids::random_generator()())), sprite_(sprite),
+    , army_id_(to_string(boost::uuids::random_generator()())), sprite_(sprite),
     army_size_(army_size)
 {
     set_position(pos);
-
+    set_velocity(5.0f);
     LOG(INFO) << "created army: " << army_id_;
 }
 
 Army::~Army() {}
 
-
+// a call to move will only happen if there actually is a move to be done
 void Army::move(Origin origin)
 {
+    auto& path = movement_path.get_path();
 
+}
+
+void Army::set_velocity(float velocity)
+{
+    velocity_ = velocity;
+}
+
+float Army::get_velocity() const
+{
+    return velocity_;
 }
 
 void Army::draw(SDL_Renderer* renderer)
 {
-    auto& [x, y] = get_position();
-    SDL_Rect origin{ x, y, sprite_->source_rect.w, sprite_->source_rect.h };
+    auto& pos = get_position();
+    SDL_Rect origin{ static_cast<int>(pos.x), static_cast<int>(pos.y), sprite_->source_rect.w, sprite_->source_rect.h };
     scale_object(center_, origin, pos_, current_scale_);
     //SDL_RenderDrawRect(renderer, &pos_);
     SDL_RenderCopyEx(renderer, sprite_->texture, &sprite_->source_rect, &pos_, 0, &center_, SDL_FLIP_NONE);
@@ -48,40 +61,21 @@ const SDL_Rect& Army::get_sprite_rect() const
     return pos_;
 }
 
-void Army::get_sprite_base_center(SDL_Point& center_position)
+void Army::get_sprite_base_center(glm::vec2& center_position)
 {
-    auto& [x, y] = get_position();
-
-    center_position = { x, y };
+    center_position = get_position();
 }
 
-float king::Army::scale()
+float Army::scale()
 {
     return current_scale_;
 }
 
-void Army::set_movement_path(AstarMovementPath& path)
+void Army::init_path()
 {
-    int movement_path = 0;
-
-    /*
-     * Todo: for each entry entry in the movement path we can generate a 2d vector
-     * Steps:
-     * Iterate over the path, take the int, convert it to the pixel coords of the square it represents.
-     * Convert it to it's screen coordinates
-     * Store it as a movement path.
-     *
-     */
-
-    for (auto& entry : path)
-    {
-
-    }
-}
-
-AstarMovementPath& Army::get_movement_path()
-{
-    return movement_path_;
+    movement_path.update_path_samples();
+    path_position_ = 0;
+    path_active = true;
 }
 
 void Army::populate()

@@ -21,7 +21,7 @@ ResourceManager::ResourceManager()
 
 void ResourceManager::setup_initial_resources()
 {
-    load_image("map", "resources/images/kingsmap.png");
+    load_image("map", "resources/images/kings.jpg");
     load_image("human-axe-rider", "resources/images/human-axe-rider.png");
     load_image("human_shieldman-rider", "resources/images/human-shieldman-rider.png");
     load_image("human-spearman-rider", "resources/images/human-spearman-rider.png");

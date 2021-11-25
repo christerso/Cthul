@@ -27,7 +27,7 @@ add_custom_target(TARGET kings POST_BUILD
 
 make_directory (${CMAKE_BINARY_DIR}/logging)
 
-add_executable (kings "kings.cpp" "kings.h" "resourcemanager.h" "resourcemanager.cpp" "astar.cpp" "astar.h" "player.cpp" "player.h" "common.h" "kingdom.h" "kingdom.cpp"  "movable.h" "army.h" "army.cpp" "character.h" "character.cpp" "castle.h" "castle.cpp"  "input.cpp" "drawable.h" "render.h" "render.cpp"  )
+add_executable (kings "kings.cpp" "kings.h" "resourcemanager.h" "resourcemanager.cpp" "astar.cpp" "astar.h" "player.cpp" "player.h" "common.h" "kingdom.h" "kingdom.cpp"  "movable.h" "army.h" "army.cpp" "character.h" "character.cpp" "castle.h" "castle.cpp"  "input.cpp" "drawable.h" "render.h" "render.cpp"   "timer.h" "timer.cpp")
 add_custom_target(copy-runtime-files ALL COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/resources ${CMAKE_BINARY_DIR}/resources)
 
 set(CMAKE_MAKE_PROGRAM ninja)
@@ -51,7 +51,6 @@ find_package(sdl2-gfx CONFIG REQUIRED)
 find_package(sdl2-ttf CONFIG REQUIRED)
 find_package(sdl2-net CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
-find_package(vectorclass CONFIG REQUIRED)
 find_path(BSHOSHANY_THREAD_POOL_INCLUDE_DIRS "thread_pool.hpp")
 find_path(RAPIDCSV_INCLUDE_DIRS "rapidcsv.h")
 

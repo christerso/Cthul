@@ -2,7 +2,7 @@
 
 #include "input.h"
 #include "resourcemanager.h"
-
+#include "timer.h"
 #include <SDL2/SDL_render.h>
 
 namespace king
@@ -21,7 +21,6 @@ public:
     bool create_window();
     void draw_line(float start_x, float start_y, float end_x, float end_y) const;
     void draw_debug_astar() const;
-    void draw_weights() const;
     void draw_world();
     void draw_all_astar_weights();
 
