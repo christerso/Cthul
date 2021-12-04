@@ -5,9 +5,12 @@
 #include <glog/logging.h>
 #include <cmath>
 #include <glm/gtx/norm.hpp>
+#include "timer.h"
+#include <chrono>
+#include <ratio>
 
 using namespace king;
-
+constexpr double kNanoSecond = 1000000000;
 Army::Army(Character& owner, glm::vec2& pos, Sprite* sprite, int army_size)
     : owner_(owner.get_id())
     , army_id_(to_string(boost::uuids::random_generator()())), sprite_(sprite),
@@ -20,11 +23,51 @@ Army::Army(Character& owner, glm::vec2& pos, Sprite* sprite, int army_size)
 
 Army::~Army() {}
 
-// a call to move will only happen if there actually is a move to be done
+// a call to move will only happen if path_active = true
 void Army::move(Origin origin)
 {
-    auto& path = movement_path.get_path();
+    // get current time difference from last time this function was called
 
+    const auto now = std::chrono::steady_clock::now();
+    delta_counter += static_cast<int>(std::chrono::duration_cast<std::chrono::nanoseconds>(now - time_point).count());
+    time_point = now;
+
+    if (delta_counter < kNanoSecond)
+    {
+        return;
+    }
+    const auto path = movement_path.get_path();
+    if (path.empty())
+    {
+        return;
+    }
+    delta_counter = 0;
+    current_path_position_ += common::kMovementPerSecondPer1Kmh * speed_;
+    path_step_position_ = static_cast<size_t>(current_path_position_ / (path_distance / static_cast<double>(path.size())));
+    std::cout << "Path Step:" << path_step_position_ << std::endl;
+    position_ = path[path_step_position_];
+
+    // take the path length in km and divide it by speed
+    const auto path_update = path_distance - current_path_position_;
+    time_path_will_take_ = path_update / (common::kMovementPerHour1kmh * speed_);
+    // difference between the current path start point and the current position
+    auto diff = glm::distance2(position_, path[path_position_]);
+
+    // get position to measure how far we've got
+
+    if (path_position_ >= path.size())
+    {
+        path_active = false;
+        movement_path.clear_path();
+        return;
+    }
+
+    // check if destination reached
+    const auto distance = glm::distance2(position_, path[path_position_]);
+    if (distance < 1.0f && path_position_ <= path.size())
+    {
+        ++path_position_;
+    }
 }
 
 void Army::set_velocity(float velocity)
@@ -73,9 +116,12 @@ float Army::scale()
 
 void Army::init_path()
 {
-    movement_path.update_path_samples();
+    path_distance = movement_path.update_path_samples();
+    time_path_will_take_ = path_distance / (common::kMovementPerHour1kmh * speed_);
     path_position_ = 0;
+    delta_counter = 0;
     path_active = true;
+    time_point = std::chrono::steady_clock::now();
 }
 
 void Army::populate()

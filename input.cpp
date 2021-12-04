@@ -64,15 +64,16 @@ bool Input::input_loop()
             {
                 if (scale_ <= 3.f)
                 {
+                    scale_ += 0.1f;
                 }
             }
-            //else if (sdl_event_.wheel.y < 0) // scroll down
-            //{
-            //    if (scale_ >= 0.5f)
-            //    {
-            //        scale_ -= 0.001f;
-            //    }
-            //}
+            if (sdl_event_.wheel.y < 0) // scroll down
+            {
+                if (scale_ >= 0.5f)
+                {
+                    scale_ -= 0.1f;
+               }
+            }
             //if (camera_.w < world_width_)
             //{
             //    camera_.w *= scale_;

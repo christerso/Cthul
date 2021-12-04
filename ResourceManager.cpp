@@ -26,7 +26,9 @@ void ResourceManager::setup_initial_resources()
     load_image("human_shieldman-rider", "resources/images/human-shieldman-rider.png");
     load_image("human-spearman-rider", "resources/images/human-spearman-rider.png");
     load_image("human-swordman", "resources/images/human-swordman.png");
-    load_astar_data("resources/data/kingdom_astar.csv");
+    load_layer_data("resources/data/kingdom_astar.csv", map_layers_.astar_data);
+    load_layer_data("resources/data/kingdom_events.csv", map_layers_.map_events_areas);
+    load_layer_data("resources/data/kingdom_sightline.csv", map_layers_.sightline_data);
 }
 
 void ResourceManager::set_renderer(SDL_Renderer* renderer)
@@ -36,7 +38,17 @@ void ResourceManager::set_renderer(SDL_Renderer* renderer)
 
 MapData& ResourceManager::get_astar_data()
 {
-    return astar_data_;
+    return map_layers_.astar_data;
+}
+
+MapData& ResourceManager::get_sightline_data()
+{
+    return map_layers_.sightline_data;
+}
+
+MapData& ResourceManager::get_event_data()
+{
+    return  map_layers_.map_events_areas;
 }
 
 const Sprite& ResourceManager::load_image(const std::string& name, const std::string& filename)
@@ -78,7 +90,7 @@ Sprite* ResourceManager::get_image(const std::string& name)
     return image_store_[name].get();
 }
 
-void ResourceManager::load_astar_data(const std::string& filename)
+void ResourceManager::load_layer_data(const std::string& filename, MapData& map_data)
 {
     rapidcsv::Document doc(filename, rapidcsv::LabelParams(-1, -1));
     for (auto i = 0; i < doc.GetRowCount(); i++)
@@ -86,7 +98,7 @@ void ResourceManager::load_astar_data(const std::string& filename)
         std::vector<int> row = doc.GetRow<int>(i);
         for (auto& entry: row)
         {
-            astar_data_.push_back(entry);
+            map_data.push_back(entry);
         }
     }
 }
@@ -120,4 +132,9 @@ void ResourceManager::load_json(const std::string& name, const std::string& file
             exit(-1);
         }
     }
+}
+
+const MapLayers& ResourceManager::get_layer_data()
+{
+    return map_layers_;
 }

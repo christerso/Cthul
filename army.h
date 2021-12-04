@@ -3,6 +3,7 @@
 #include "character.h"
 #include "common.h"
 #include "movable.h"
+#include "path.h"
 #include "resourcemanager.h"
 #include "timer.h"
 
@@ -10,6 +11,7 @@
 #include <string>
 #include <SDL_render.h>
 #include <glm/vec2.hpp>
+#include <chrono>
 
 namespace king
 {
@@ -32,6 +34,7 @@ enum class ArmyState
 };
 
 using Amount = int;
+using TimeSample = std::chrono::time_point<std::chrono::milliseconds>;
 // TODO: add original destination so the army can resume it?
 class Army : public MovableEntity, Drawable
 {
@@ -48,24 +51,29 @@ public:
     void get_sprite_base_center(glm::vec2& center_position);
     float scale();
     void init_path();
-    common::Path movement_path;
+    Path movement_path;
+    double path_distance;
     bool path_active = false;
+    int delta_counter {};
+    std::chrono::steady_clock::time_point time_point;
 private:
+    double calculate_path_length();
     size_t path_step_position_ {};
-    float path_position_;
-
+    size_t path_position_;
+    double current_path_position_ {};
+    double time_path_will_take_ {};
     void update_map_symbol();
     void populate();
     Owner owner_ {}; // id of owner, get_id() from army and character
     Origin origin_ = Origin::AI;
     ArmyID army_id_ {};
+    double speed_ {5.0f}; // 5km/h
     Sprite* sprite_ = nullptr;
     std::vector<glm::vec2> waypoints_;
     int army_size_ {};
     SDL_Point center_ {};
     SDL_Rect pos_ {};
     float current_scale_ = .4f;
-    int current_path;
     int current_path_waypoint;
     const float epsilon_ = 100.0f;
 };

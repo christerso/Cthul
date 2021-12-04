@@ -27,6 +27,14 @@ struct Sprite
 using ImageStore = std::unordered_map<std::string, std::unique_ptr<Sprite>>;
 using ResourceLoader = std::unordered_map<std::string, std::function<SDL_Texture*(std::string, std::string)>>;
 using MapData = std::vector<int>;
+
+struct MapLayers
+{
+    MapData astar_data;
+    MapData sightline_data;
+    MapData map_events_areas;
+};
+
 class ResourceManager
 {
 public:
@@ -37,19 +45,22 @@ public:
     void setup_initial_resources();
     void set_renderer(SDL_Renderer* renderer);
     MapData& get_astar_data();
-
+    MapData& get_sightline_data();
+    MapData& get_event_data();
     // This load function should be generic.
     // Anything given should be handled.
     const Sprite& load_image(const std::string& name, const std::string& filename);
     Sprite* get_image(const std::string& name);
     void load_json(const std::string& name, const std::string& filename) const;
-    void load_astar_data(const std::string& filename);
+    void load_layer_data(const std::string& filename, MapData& map_data);
+    const MapLayers& get_layer_data();
 private:
     ResourceLoader resource_loader_;
     ImageStore image_store_;
     SDL_Renderer* renderer_ = nullptr;
-    MapData astar_data_;
+    MapLayers map_layers_;
 };
+
 } // namespace king
 
 

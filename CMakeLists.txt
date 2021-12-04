@@ -27,7 +27,7 @@ add_custom_target(TARGET kings POST_BUILD
 
 make_directory (${CMAKE_BINARY_DIR}/logging)
 
-add_executable (kings "kings.cpp" "kings.h" "resourcemanager.h" "resourcemanager.cpp" "astar.cpp" "astar.h" "player.cpp" "player.h" "common.h" "kingdom.h" "kingdom.cpp"  "movable.h" "army.h" "army.cpp" "character.h" "character.cpp" "castle.h" "castle.cpp"  "input.cpp" "drawable.h" "render.h" "render.cpp"   "timer.h" "timer.cpp")
+add_executable (kings "kings.cpp" "kings.h" "resourcemanager.h" "resourcemanager.cpp" "astar.cpp" "astar.h" "player.cpp" "player.h" "common.h" "kingdom.h" "kingdom.cpp"  "movable.h" "army.h" "army.cpp" "character.h" "character.cpp" "castle.h" "castle.cpp"  "input.cpp" "drawable.h" "render.h" "render.cpp"   "timer.h" "timer.cpp" "events.h" "email.h" "events.cpp" "email.cpp" "path.h" "path.cpp" "fastnoiselite.h")
 add_custom_target(copy-runtime-files ALL COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/resources ${CMAKE_BINARY_DIR}/resources)
 
 set(CMAKE_MAKE_PROGRAM ninja)
@@ -36,7 +36,6 @@ set(Boost_NO_WARN_NEW_VERSIONS ON)
 set(Boost_USE_STATIC_LIBS    ON)
 set(Boost_USE_MULTITHREADED  ON)
 set(Boost_USE_STATIC_RUNTIME ON)
-
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system thread filesystem)
 find_package(glog CONFIG REQUIRED)
@@ -45,6 +44,7 @@ find_package(fmt CONFIG REQUIRED)
 find_package(Flatbuffers CONFIG REQUIRED)
 find_package(GTest REQUIRED)
 find_package(ZLIB REQUIRED)
+find_package(Poco CONFIG REQUIRED COMPONENTS Net XML Zip Data)
 find_package(SDL2 CONFIG REQUIRED)
 find_package(sdl2-image CONFIG REQUIRED)
 find_package(sdl2-gfx CONFIG REQUIRED)
@@ -61,7 +61,6 @@ add_subdirectory(tests)
 include_directories(
   ${GLOG_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIR}
-  ${LIBNOISE_INCLUDE_DIR}
   ${GTEST_INCLUDE_DIRS})
 
 target_include_directories(kings PRIVATE ${BSHOSHANY_THREAD_POOL_INCLUDE_DIRS} ${RAPIDCSV_INCLUDE_DIRS})
@@ -74,7 +73,6 @@ target_link_libraries(kings PRIVATE
                       nlohmann_json nlohmann_json::nlohmann_json
                       ${PNG_LIBRARY}
                       ${BCRYPT_LIBRARY}
-                      ${LIBNOISE_LIBRARIES}
                       ${Boost_LIBRARIES}
                       ${GLOG_ENTRY}
                       ZLIB::ZLIB
@@ -83,4 +81,5 @@ target_link_libraries(kings PRIVATE
                       fmt::fmt-header-only
                       glog::glog
                       glm::glm
+                      Poco::Net Poco::XML Poco::Zip Poco::Data
                       )

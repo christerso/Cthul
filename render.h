@@ -30,7 +30,7 @@ private:
     Uint32 current_time_{};
     Uint32 delta_{};
     Uint32 updated_delta_{};
-    int fps_{144};
+    int fps_{60};
     Uint32 delay_time_{};
     int map_width_{};
     int map_height_{};

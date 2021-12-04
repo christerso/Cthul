@@ -2,9 +2,11 @@
 #include "common.h"
 #include "player.h"
 #include <glm/vec2.hpp>
+#include <chrono>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include "astar.h"
+#include "path.h"
 
 using namespace king;
 
@@ -69,10 +71,10 @@ void Kingdom::setup_kingdom()
     glm::vec2 castle2_pos{ 1485, 695 };
     glm::vec2 castle3_pos{ 213, 1263 };
     glm::vec2 castle4_pos{ 1806, 1737 };
-    auto castle1 = std::make_unique<Castle>(Castle(castle1_pos));
-    auto castle2 = std::make_unique<Castle>(Castle(castle2_pos));
-    auto castle3 = std::make_unique<Castle>(Castle(castle3_pos));
-    auto castle4 = std::make_unique<Castle>(Castle(castle4_pos));
+    auto castle1 = std::move(std::make_unique<Castle>(Castle(castle1_pos)));
+    auto castle2 = std::move(std::make_unique<Castle>(Castle(castle2_pos)));
+    auto castle3 = std::move(std::make_unique<Castle>(Castle(castle3_pos)));
+    auto castle4 = std::move(std::make_unique<Castle>(Castle(castle4_pos)));
     ids_.push_back(castle1->get_id());
     ids_.push_back(castle2->get_id());
     ids_.push_back(castle3->get_id());
@@ -92,10 +94,12 @@ void Kingdom::setup_kingdom()
     // assign army to player and start it at the same position
     LOG(INFO) << "X: " << player_.get_position().x << " Y: " << player_.get_position().y;
     auto& nonconstpos = player_.get_position();
-    auto army = std::make_unique<Army>(
-        Army(player_, nonconstpos, resource_manager_.get_image("human-swordman"), 100));
+    auto army = std::make_unique<Army>(Army(player_, nonconstpos, resource_manager_.get_image("human-swordman"), 100));
+    auto army1 = std::make_unique<Army>(Army(player_, castle4_pos, resource_manager_.get_image("human-axe-rider"), 100));
     auto id = army->get_id();
     armies_[id] = std::move(army);
+    auto id1 = army1->get_id();
+    armies_[id1] = std::move(army1);
 }
 
 void Kingdom::start_threads()
@@ -113,6 +117,11 @@ void Kingdom::stop_threads()
     LOG(INFO) << "stopping threads...";
     input_.process_cv.notify_one();
     pool.join();
+}
+
+std::vector<int>& Kingdom::get_astar_result_limited(int step)
+{
+    return astar_.get_final_path_limited(step);
 }
 
 std::vector<int>& Kingdom::get_astar_result()
@@ -141,18 +150,16 @@ Input& Kingdom::get_input()
     return input_;
 }
 
-void Kingdom::draw_bezier_paths(SDL_Renderer* renderer) const
+void Kingdom::draw_paths(SDL_Renderer* renderer) const
 {
     for (const auto& army : armies_)
     {
-        if (!army.second->movement_path.check_path())
+        if (!army.second->path_active)
         {
             return;
         }
 
-        army.second->movement_path.update_path_samples();
-
-        auto& army_movement_path = army.second->movement_path.get_path();
+        auto army_movement_path = army.second->movement_path.get_path();
         if (army_movement_path.empty())
         {
             return;
@@ -194,37 +201,20 @@ const KingdomID& Kingdom::get_id() const
  * Iterates through all the movables, calles the update method.
  * The update method will check if there exists a curve, if a curve is found, move along the curve.
  */
+
+
 void Kingdom::movement()
 {
-    LOG(INFO) << "staring movement thread..";
     while (g_running)
     {
-
-        LOG(INFO) << "movement thread running executing...";
-        // TODO: This thread should only execute on army / character movements.
-        // If there are no movements it should not do anything but wait.
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        /*
-         * Armies are player controlled and ai controlled.
-         * A player army can also become ai controlled if they feel that the player
-         * is not taking care of them.
-         * TODO: Create a move from a to b using a*, plot it on the map using a spline/bezier line.
-         * This would mean, plot the path with a* taking into accounts the weights of the map.
-         * Figure out where the control points go.
-         */
-         // Iterate through all the army structures and call the move method
-
-
         for (const auto& [owner, army] : armies_)
         {
-            // a moving army has got a movement path as well as a movement state.
-            //
-            // if army id is owned by player then move to destination set by player, not by ai
-
+            if (army.get() == nullptr)
+            {
+                continue;
+            }
             if (army->path_active)
             {
-                // setup path
-
                 army->move(Origin::PLAYER);
             }
         }
@@ -263,11 +253,10 @@ void Kingdom::event()
     }
 }
 
-// Process: is responsible for
+// Kingdom::process() is responsible for
 // 1. astar calculations
 // 2. acting on mouse input
-//
-constexpr int kCurveSamples = 5;
+constexpr int kCurveSamples = 10;
 void Kingdom::process()
 {
     std::mutex process_lock;
@@ -313,7 +302,9 @@ void Kingdom::process()
                 const auto destination = common::get_square(map_tile_size_x_, map_tile_size_y_, mouse_pos);
                 if (astar_.astar(static_cast<int>(tile_position.x), static_cast<int>(tile_position.y), static_cast<int>(destination.x), static_cast<int>(destination.y), false))
                 {
-                    auto& result = get_astar_result();
+                    auto& result = get_astar_result_limited(3);
+                    //army->path_distance = calculate_path_length(result);
+
                     while (result.size() % 4 != 0)
                     {
                         result.push_back(result[result.size() - 1]);
@@ -323,7 +314,7 @@ void Kingdom::process()
                     auto it_end = result.end();
                     while (it_pos != it_end)
                     {
-                        common::Curve curve{};
+                        Curve curve{};
                         curve.p0 = get_square_pixel_position(*it_pos++);
                         curve.p1 = get_square_pixel_position(*it_pos++);
                         if (it_pos != it_end)
@@ -339,7 +330,7 @@ void Kingdom::process()
                         }
                         if (it_pos != it_end)
                         {
-                            curve.p3 = get_square_pixel_position(*it_pos++);
+                            curve.p3 = get_square_pixel_position(*it_pos);
                         }
                         else
                         {

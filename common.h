@@ -13,9 +13,19 @@ namespace common
     static constexpr int kSeedVal = 19680821;
     static std::mt19937 g_generator;
     constexpr double kPi = 3.14159265358979323846;
+    constexpr double kMovementCalculationsPerSecond = 1000.0 / 60.0;
 
-    // Bezier curve
-// --------------------------------------------------------------------------------------------------------
+    constexpr double kMovementInOneDay1kmh = 113500.0 / 5;
+
+    constexpr double kMovementPerHour1kmh = kMovementInOneDay1kmh / 24.0;
+    constexpr double kMovementPerMinutePer1Kmh = kMovementPerHour1kmh / 60.0;
+    constexpr double kMovementPerSecondPer1Kmh = kMovementPerMinutePer1Kmh / 60.0;
+    constexpr double kOneSecondDistance = kMovementInOneDay1kmh / 86400.0;
+    constexpr double kKilometerBaseValue = 120.0;
+    constexpr double kOneKilometerInUnits = kMovementInOneDay1kmh / kKilometerBaseValue;
+
+    // if walking 1km
+    // --------------------------------------------------------------------------------------------------------
     // Hermite
 
     template <typename T>
@@ -30,6 +40,21 @@ namespace common
     }
 
     // ---------------------------------------------------------------------------------------------------------
+
+    template <typename T, typename U>
+    struct interpolate
+    {
+        static T lerp(const U value, const T start, const T end)
+        {
+            return start + (end - start) * value;
+        }
+    };
+
+    template <>
+    inline glm::vec2 interpolate<glm::vec2, double>::lerp(const double value, const glm::vec2 start, const glm::vec2 end)
+    {
+        return glm::vec2{ start.x + (end.x - start.x) * value,start.y + (end.y - start.y) * value };
+    }
 
     inline bool is_in_rectangle(const double center_x, const double center_y, const double radius, const double x,
         const double y)
@@ -55,61 +80,6 @@ namespace common
 
         return false;
     }
-
-    struct Curve
-    {
-        glm::vec2 p0;
-        glm::vec2 p1;
-        glm::vec2 p2;
-        glm::vec2 p3;
-
-        [[nodiscard]] glm::vec2 calculate_vector_points(const float t)
-        {
-            return cubic_hermite<glm::vec2>(p0, p1, p2, p3, t);
-        }
-    };
-
-    class Path
-    {
-    public:
-        void add_curve(const Curve& curve, const int samples)
-        {
-            curves_.push_back(curve);
-            samples_.push_back(samples);
-        }
-
-        void update_path_samples()
-        {
-            calculated_path_.clear();
-
-            for (int i = 0; i < curves_.size(); i++)
-            {
-                for (float t = 0.f; t < 1.0f; t += 1.0f / samples_[i])  // NOLINT(cert-flp30-c)
-                {
-                    calculated_path_.emplace_back(curves_[i].calculate_vector_points(t));
-                }
-            }
-        }
-
-        std::vector<glm::vec2>& get_path()
-        {
-            return calculated_path_;
-        }
-
-        bool check_path() const { return !curves_.empty(); }
-
-        void clear_path()
-        {
-            calculated_path_.clear();
-            curves_.clear();
-            samples_.clear();
-        }
-
-    private:
-        std::vector<glm::vec2> calculated_path_;
-        std::vector<Curve> curves_;
-        std::vector<int> samples_;
-    };
 
     static glm::vec2 get_square(const int tile_width, const int tile_height, const glm::vec2& pos)
     {
@@ -145,7 +115,7 @@ namespace common
     template <typename T>
     struct RangeRand
     {
-        inline static T get_random_value_within_range(const T start, const T end);
+        static T get_random_value_within_range(const T start, const T end);
     };
 
     template <>
@@ -173,12 +143,6 @@ namespace common
     T normalize(const T value, const T min, const T max)
     {
         return (value - min) / (max - min);
-    }
-
-    template <typename T>
-    float lerp(const T value, const T start, const T end)
-    {
-        return start + (end - start) * value;
     }
 
     // The distance can be defined as a straight line between 2 points.

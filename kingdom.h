@@ -54,13 +54,14 @@ public:
     CastleID& get_castle_id(int position);
     void spawn_new_army();
     Input& get_input();
-    void draw_bezier_paths(SDL_Renderer* renderer) const;
+    void draw_paths(SDL_Renderer* renderer) const;
     void draw_sprites(SDL_Renderer* renderer) const;
     const KingdomID& get_id() const;
     const Castle& get_castle(const CastleID& id) const;
     std::map<ArmyID, std::unique_ptr<Army>>& get_armies();
     void start_threads();
     void stop_threads();
+    std::vector<int>& get_astar_result_limited(int step);
     std::vector<int>& get_astar_result();
     int get_tile_sizes() const;
 private:

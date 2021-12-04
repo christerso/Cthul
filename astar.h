@@ -160,11 +160,12 @@ public:
      */
     bool astar(int from_x, int from_y, int to_x, int to_y, bool ignore_blocked);
 
+
     /**
      * Return result
      */
     std::vector<int>& get_final_path();
-
+    std::vector<int>& get_final_path_limited(int step);
     /**
      * @brief enableDebugDump
      * @param enable Enables output of ascii map for debug purposes

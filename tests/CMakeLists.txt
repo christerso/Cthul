@@ -37,22 +37,18 @@ find_package(sdl2-image CONFIG REQUIRED)
 find_package(sdl2-gfx CONFIG REQUIRED)
 find_package(sdl2-ttf CONFIG REQUIRED)
 find_package(sdl2-net CONFIG REQUIRED)
-find_package(vectorclass CONFIG REQUIRED)
-find_path(BSHOSHANY_THREAD_POOL_INCLUDE_DIRS "thread_pool.hpp")
 find_path(RAPIDCSV_INCLUDE_DIRS "rapidcsv.h")
 add_executable(${BINARY} "resourcemanager_test.h" "resourcemanager_test.cpp")
 
 include_directories(
   ${GLOG_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIR}
-  ${LIBNOISE_INCLUDE_DIR}
   ${GTEST_INCLUDE_DIRS})
 
 add_test(NAME ${BINARY} COMMAND ${BINARY})
 
 target_link_libraries(${BINARY} PUBLIC
                       SDL2::SDL2 SDL2::SDL2main
-                      ${LIBNOISE_LIBRARIES}
                       ${Boost_LIBRARIES}
                       ${GLOG_ENTRY}
                       SDL2::SDL2_image

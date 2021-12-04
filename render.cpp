@@ -72,7 +72,7 @@ void Render::setup()
         LOG(ERROR) << fmt::format("renderer target could not be created! SDL Error: {}", SDL_GetError());
         return;
     }
-    camera_ = { 0, 0, map_width_, map_height_ };
+    camera_ = { 0, 0, static_cast<int>(map_width_ * scale_), static_cast<int>(map_height_ * scale_)};
     input_->set_camera(camera_);
 }
 
@@ -104,7 +104,9 @@ void Render::draw_world()
 
     SDL_RenderDrawRect(renderer_, &input_->highlight_square_);
     SDL_SetRenderTarget(renderer_, nullptr);
-    SDL_RenderCopy(renderer_, texture_buffer_, &camera_, nullptr);
+    // prepare camera
+    // SDL_FRect rend {camera_.x * scale_, camera_.y * scale_, camera_.w * scale_, camera_.h * scale_};
+    SDL_RenderCopyF(renderer_, texture_buffer_, &camera_, nullptr);
     SDL_SetRenderTarget(renderer_, nullptr);
     SDL_RenderPresent(renderer_); // swap in the final image
 
@@ -126,8 +128,8 @@ void Render::draw_debug_astar() const
         return;
     }
     SDL_Rect square{};
-    auto tile_pos_x = 100;
-    auto tile_pos_y = 100;
+    constexpr int tile_pos_x = 100;
+    constexpr int tile_pos_y = 100;
     auto tile_size = map_width_ / 100;
     SDL_SetRenderDrawColor(renderer_, 255, 255, 0, 255);
     SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_ADD);

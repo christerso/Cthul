@@ -6,7 +6,7 @@
 
 namespace king
 {
-
+    constexpr double kPixelSpeed = 175000.0 / 84500.0;
     enum class Behaviour
     {
         STATIC,

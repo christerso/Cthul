@@ -13,7 +13,6 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 #include <fmt/format.h>
-
 #include "input.h"
 
 namespace king

@@ -150,6 +150,20 @@ bool AStar::astar(const int from_x, const int from_y, const int to_x, const int 
     return true;
 }
 
+std::vector<int>& AStar::get_final_path_limited(int step)
+{
+    std::vector<int> new_stepped;
+    new_stepped.push_back(final_path_[0]);
+    for (size_t i = 1; i < final_path_.size() - 1; i += step)
+    {
+        new_stepped.push_back(final_path_[i]);
+    }
+    new_stepped.push_back(final_path_[final_path_.size() - 1]);
+    final_path_.clear();
+    final_path_ = std::move(new_stepped);
+    return final_path_;
+}
+
 std::vector<int>& AStar::get_final_path()
 {
     return final_path_;
@@ -347,7 +361,7 @@ bool AStar::buildPath(const Entry* parentEntry)
         e = e->parent;
     }
     std::ranges::copy(m_path_result, std::back_inserter(final_path_));
-    
+
 
     if (m_enable_debug)
     {
