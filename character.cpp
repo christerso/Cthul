@@ -26,5 +26,5 @@ void Character::move(Origin origin)
 
 void Character::set_velocity(float velocity)
 {
-    velocity_ = velocity;
+    m_velocity = velocity;
 }

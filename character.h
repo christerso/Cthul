@@ -1,6 +1,8 @@
 #pragma once
 #include "movable.h"
 #include "drawable.h"
+#include "entity.h"
+
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <string>
@@ -10,7 +12,7 @@ namespace king
 using CharacterID = std::string;
 using Owner = std::string;
 
-class Character : public MovableEntity
+class Character : public Entity, Movable
 {
 
 public:
@@ -18,7 +20,6 @@ public:
     ~Character();
     const CharacterID& get_id();
     void move(Origin origin) override;
-    void set_velocity(float velocity) override;
 protected:
     CharacterID character_id_;
     std::string name_;

@@ -24,7 +24,7 @@ double Path::update_path_samples()
 
         for (auto& entry : curves_)
         {
-            distance += glm::distance<2>(entry.p0, entry.p3);
+            distance += glm::distance(entry.p0, entry.p3);
         }
     }
     return distance;

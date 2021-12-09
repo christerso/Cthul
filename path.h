@@ -6,6 +6,7 @@
 #include <mutex>
 
 #include <glm/vec2.hpp>
+#include <glog/logging.h>
 
 namespace king
 {
@@ -34,6 +35,15 @@ namespace king
         {
             std::cout << "Copy Constructor called" << std::endl;
         }
+
+        Path& operator=(const Path& path)
+        {
+            calculated_path_ = path.calculated_path_;
+            curves_ = path.curves_;
+            samples_ = path.samples_;
+            distance_ = path.distance_;
+        }
+
         void add_curve(const Curve& curve, const int samples);
         double update_path_samples();
         std::vector<glm::vec2> get_path();

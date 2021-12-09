@@ -96,7 +96,7 @@ void Render::draw_world()
     SDL_RenderClear(renderer_);
     SDL_RenderCopy(renderer_, map_texture_->texture, nullptr, nullptr);
     kingdom_->draw_sprites(renderer_);
-    kingdom_->draw_bezier_paths(renderer_);
+    kingdom_->draw_paths(renderer_);
     if (input_->show_astar_path()) {
         draw_debug_astar();
         draw_all_astar_weights();

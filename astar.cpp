@@ -10,8 +10,8 @@ using namespace star;
 // Scan the 8 positions around the center
 static int square_check[] = { -1, -1, 0, -1, 1, -1, -1, 0, 1, 0, -1, 1, 0, 1, 1, 1 };
 
-const static int LINEAR_COST = 2;
-const static int DIAGONAL_COST = 3;
+const static int LINEAR_COST = 3;
+const static int DIAGONAL_COST = 5;
 const static int BLOCKED = 7;
 AStar::AStar()
     : m_enable_debug(false)

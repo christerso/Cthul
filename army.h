@@ -2,6 +2,7 @@
 
 #include "character.h"
 #include "common.h"
+#include "entity.h"
 #include "movable.h"
 #include "path.h"
 #include "resourcemanager.h"
@@ -33,23 +34,28 @@ enum class ArmyState
     kRun
 };
 
+struct Speeds
+{
+    double kGuarding = 0.0;
+    double kWalking = 5.0;
+    double kForcedMove = 10.0;
+    double kRun = 15.0;
+};
+
 using Amount = int;
 using TimeSample = std::chrono::time_point<std::chrono::milliseconds>;
 // TODO: add original destination so the army can resume it?
-class Army : public MovableEntity, Drawable
+class Army : public Entity, Drawable, Movable
 {
 public:
     Army(Character& owner, glm::vec2& pos, Sprite* sprite, int army_size);
     virtual ~Army();
     void move(Origin origin) override;
-    void set_velocity(float velocity);
-    float get_velocity() const;
     void draw(SDL_Renderer* renderer) override;
     const ArmyID& get_id() const;
     Sprite& get_sprite();
     const SDL_Rect& get_sprite_rect() const;
     void get_sprite_base_center(glm::vec2& center_position);
-    float scale();
     void init_path();
     Path movement_path;
     double path_distance;
@@ -58,23 +64,22 @@ public:
     std::chrono::steady_clock::time_point time_point;
 private:
     double calculate_path_length();
-    size_t path_step_position_ {};
-    size_t path_position_;
-    double current_path_position_ {};
-    double time_path_will_take_ {};
+    size_t m_path_step_position {};
+    size_t m_path_position;
+    double m_current_path_position {};
+    double m_time_path_will_take {};
     void update_map_symbol();
     void populate();
-    Owner owner_ {}; // id of owner, get_id() from army and character
-    Origin origin_ = Origin::AI;
-    ArmyID army_id_ {};
-    double speed_ {5.0f}; // 5km/h
-    Sprite* sprite_ = nullptr;
-    std::vector<glm::vec2> waypoints_;
-    int army_size_ {};
-    SDL_Point center_ {};
+    Owner m_owner {}; // id of owner, get_id() from army and character
+    Origin m_origin = Origin::kEntity;
+    ArmyID m_army_id {};
+    Sprite* m_sprite = nullptr;
+    std::vector<glm::vec2> m_waypoints;
+    int m_army_size {};
+    SDL_Point m_center {};
     SDL_Rect pos_ {};
-    float current_scale_ = .4f;
-    int current_path_waypoint;
-    const float epsilon_ = 100.0f;
+    float m_current_scale = .4f;
+    int m_current_path_waypoint;
+    const float m_epsilon = 100.0f;
 };
 } // namespace king

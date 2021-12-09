@@ -7,6 +7,8 @@
 #include <boost/uuid/uuid_io.hpp>
 #include "astar.h"
 #include "path.h"
+#include "fastnoiselite.h"
+#include <immintrin.h>
 
 using namespace king;
 
@@ -154,16 +156,9 @@ void Kingdom::draw_paths(SDL_Renderer* renderer) const
 {
     for (const auto& army : armies_)
     {
-        if (!army.second->path_active)
-        {
-            return;
-        }
 
+        // note this is a copy by value
         auto army_movement_path = army.second->movement_path.get_path();
-        if (army_movement_path.empty())
-        {
-            return;
-        }
         auto it_p = army_movement_path.begin();
 
         glm::vec2 from{}, to{};
@@ -215,7 +210,7 @@ void Kingdom::movement()
             }
             if (army->path_active)
             {
-                army->move(Origin::PLAYER);
+                army->move(Origin::kPlayer);
             }
         }
     }

@@ -11,14 +11,15 @@
 
 using namespace king;
 constexpr double kNanoSecond = 1000000000;
+
 Army::Army(Character& owner, glm::vec2& pos, Sprite* sprite, int army_size)
-    : owner_(owner.get_id())
-    , army_id_(to_string(boost::uuids::random_generator()())), sprite_(sprite),
-    army_size_(army_size)
+    : m_owner(owner.get_id())
+    , m_army_id(to_string(boost::uuids::random_generator()())), m_sprite(sprite),
+    m_army_size(army_size)
 {
     set_position(pos);
     set_velocity(5.0f);
-    LOG(INFO) << "created army: " << army_id_;
+    LOG(INFO) << "created army: " << m_army_id;
 }
 
 Army::~Army() {}
@@ -42,20 +43,20 @@ void Army::move(Origin origin)
         return;
     }
     delta_counter = 0;
-    current_path_position_ += common::kMovementPerSecondPer1Kmh * speed_;
-    path_step_position_ = static_cast<size_t>(current_path_position_ / (path_distance / static_cast<double>(path.size())));
-    std::cout << "Path Step:" << path_step_position_ << std::endl;
-    position_ = path[path_step_position_];
+    m_current_path_position += common::kMovementPerSecondPer1Kmh * speed_;
+    m_path_step_position = static_cast<size_t>(m_current_path_position / (path_distance / static_cast<double>(path.size())));
+    std::cout << "Path Step:" << m_path_step_position << std::endl;
+    m_position = path[m_path_step_position];
 
     // take the path length in km and divide it by speed
-    const auto path_update = path_distance - current_path_position_;
-    time_path_will_take_ = path_update / (common::kMovementPerHour1kmh * speed_);
+    const auto path_update = path_distance - m_current_path_position;
+    m_time_path_will_take = path_update / (common::kMovementPerHour1kmh * speed_);
     // difference between the current path start point and the current position
-    auto diff = glm::distance2(position_, path[path_position_]);
+    auto diff = glm::distance2(m_position, path[m_path_position]);
 
     // get position to measure how far we've got
 
-    if (path_position_ >= path.size())
+    if (m_path_position >= path.size())
     {
         path_active = false;
         movement_path.clear_path();
@@ -63,40 +64,30 @@ void Army::move(Origin origin)
     }
 
     // check if destination reached
-    const auto distance = glm::distance2(position_, path[path_position_]);
-    if (distance < 1.0f && path_position_ <= path.size())
+    const auto distance = glm::distance2(m_position, path[m_path_position]);
+    if (distance < 1.0f && m_path_position <= path.size())
     {
-        ++path_position_;
+        ++m_path_position;
     }
-}
-
-void Army::set_velocity(float velocity)
-{
-    velocity_ = velocity;
-}
-
-float Army::get_velocity() const
-{
-    return velocity_;
 }
 
 void Army::draw(SDL_Renderer* renderer)
 {
     auto& pos = get_position();
-    SDL_Rect origin{ static_cast<int>(pos.x), static_cast<int>(pos.y), sprite_->source_rect.w, sprite_->source_rect.h };
-    scale_object(center_, origin, pos_, current_scale_);
+    SDL_Rect origin{ static_cast<int>(pos.x), static_cast<int>(pos.y), m_sprite->source_rect.w, m_sprite->source_rect.h };
+    scale_object(m_center, origin, pos_, m_current_scale);
     //SDL_RenderDrawRect(renderer, &pos_);
-    SDL_RenderCopyEx(renderer, sprite_->texture, &sprite_->source_rect, &pos_, 0, &center_, SDL_FLIP_NONE);
+    SDL_RenderCopyEx(renderer, m_sprite->texture, &m_sprite->source_rect, &pos_, 0, &m_center, SDL_FLIP_NONE);
 }
 
 const ArmyID& Army::get_id() const
 {
-    return army_id_;
+    return m_army_id;
 }
 
 Sprite& Army::get_sprite()
 {
-    return *sprite_;
+    return *m_sprite;
 }
 
 const SDL_Rect& Army::get_sprite_rect() const
@@ -111,14 +102,14 @@ void Army::get_sprite_base_center(glm::vec2& center_position)
 
 float Army::scale()
 {
-    return current_scale_;
+    return m_current_scale;
 }
 
 void Army::init_path()
 {
     path_distance = movement_path.update_path_samples();
-    time_path_will_take_ = path_distance / (common::kMovementPerHour1kmh * speed_);
-    path_position_ = 0;
+    m_time_path_will_take = path_distance / (common::kMovementPerHour1kmh * speed_);
+    m_path_position = 0;
     delta_counter = 0;
     path_active = true;
     time_point = std::chrono::steady_clock::now();

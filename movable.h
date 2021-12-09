@@ -1,49 +1,21 @@
 #pragma once
 
-#include "common.h"
-#include <glm/vec2.hpp>
-#include "timer.h"
-
 namespace king
 {
-    constexpr double kPixelSpeed = 175000.0 / 84500.0;
-    enum class Behaviour
-    {
-        STATIC,
-        ARMY,
-        CHARACTER
-    };
-
     enum class Origin
     {
-        PLAYER,
-        AI
+        kPlayer,
+        kEntity,
     };
 
-    enum class Action
-    {
-        GUARD = 0,
-        MOVE,
-    };
-
-    class MovableEntity
+    class Movable
     {
     public:
-        MovableEntity() = default;
-        MovableEntity(const MovableEntity& me) = default;
         virtual void move(Origin origin) = 0;
-        virtual void set_velocity(float velocity) = 0;
-        float get_velocity_() const { return velocity_; }
-        void set_position(glm::vec2& pos)
-        {
-            position_ = pos;
-        };
-        glm::vec2& get_position() { return position_; }
-
-    protected:
-        float velocity_;
-        Behaviour behaviour_ = Behaviour::STATIC;
-        glm::vec2 position_;
+        virtual void set_velocity(double velocity) { m_velocity = velocity; }
+        double get_velocity_() const { return m_velocity; }
+    private:
+        double m_velocity;
+        double m_stamina;
     };
-
-} // namespace king
+}
