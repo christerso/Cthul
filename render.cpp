@@ -24,22 +24,14 @@ bool Render::create_window()
 {
     // Create window
     window_ = SDL_CreateWindow("Kings", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 1200, SDL_WINDOW_OPENGL);
-    if (window_ == nullptr)
+
+    if (SDL_CreateWindowAndRenderer(1200, 1200, SDL_WINDOW_BORDERLESS, &window_, &renderer_))
     {
-        LOG(ERROR) << fmt::format("Window could not be created !SDL_Error: {}", SDL_GetError());
-        return false;
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't create window and renderer: %s", SDL_GetError());
+        return 3;
     }
-    else
-    {
-        // Get window surface
-        SDL_SetWindowBordered(window_, SDL_FALSE);
-        screen_surface_ = SDL_GetWindowSurface(window_);
-    }
-    renderer_ = SDL_CreateRenderer(window_, -1, SDL_RENDERER_ACCELERATED);
-    if (renderer_ == nullptr)
-    {
-        LOG(ERROR) << fmt::format("renderer could not be created! SDL Error: {}", SDL_GetError());
-    }
+
+    screen_surface_ = SDL_GetWindowSurface(window_);
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2");
 
     resource_manager_->set_renderer(renderer_);
